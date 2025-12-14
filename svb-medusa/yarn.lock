@@ -2652,7 +2652,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@medusajs/file-s3@npm:2.12.2":
+"@medusajs/file-s3@npm:2.12.2, @medusajs/file-s3@npm:^2.12.2":
   version: 2.12.2
   resolution: "@medusajs/file-s3@npm:2.12.2"
   dependencies:
@@ -2665,7 +2665,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@medusajs/file@npm:2.12.2":
+"@medusajs/file@npm:2.12.2, @medusajs/file@npm:^2.12.2":
   version: 2.12.2
   resolution: "@medusajs/file@npm:2.12.2"
   peerDependencies:
@@ -15476,6 +15476,8 @@ __metadata:
   dependencies:
     "@medusajs/admin-sdk": "npm:2.12.2"
     "@medusajs/cli": "npm:2.12.2"
+    "@medusajs/file": "npm:^2.12.2"
+    "@medusajs/file-s3": "npm:^2.12.2"
     "@medusajs/framework": "npm:2.12.2"
     "@medusajs/medusa": "npm:2.12.2"
     "@medusajs/test-utils": "npm:2.12.2"
