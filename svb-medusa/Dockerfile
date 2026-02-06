@@ -18,9 +18,6 @@ COPY . .
 # Build Medusa (compiles TS + admin dashboard)
 RUN yarn build
 
-# Remove dev dependencies after build
-RUN yarn workspaces focus --production
-
 
 ## ─── Stage 2: Production ─────────────────────────────────────
 FROM node:20-alpine AS runner
@@ -29,7 +26,7 @@ WORKDIR /app
 
 RUN corepack enable && corepack prepare yarn@4.9.2 --activate
 
-# Copy built output and production dependencies
+# Copy built output and all dependencies
 COPY --from=builder /app/.medusa ./.medusa
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
@@ -39,8 +36,9 @@ COPY --from=builder /app/medusa-config.ts ./medusa-config.ts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/src ./src
 
-# Expose default Medusa port
-EXPOSE 9000
+# Railway sets PORT dynamically
+ENV PORT=9000
+EXPOSE ${PORT}
 
 # Run migrations then start server
-ENTRYPOINT ["sh", "-c", "npx medusa db:migrate && npx medusa start --host 0.0.0.0"]
+CMD ["sh", "-c", "yarn medusa db:migrate && yarn medusa start --host 0.0.0.0 --port $PORT"]

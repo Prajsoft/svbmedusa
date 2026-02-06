@@ -64,15 +64,13 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
 
   static validateOptions(options: Record<string, unknown>) {
     if (!options.api_key) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Option `api_key` is required for the Resend notification provider."
+      console.warn(
+        "[Resend] RESEND_API_KEY is not set — email sending will be disabled."
       )
     }
     if (!options.from) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Option `from` is required for the Resend notification provider."
+      console.warn(
+        "[Resend] RESEND_FROM_EMAIL is not set — using default sender."
       )
     }
   }
@@ -80,6 +78,11 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
   async send(
     notification: ProviderSendNotificationDTO
   ): Promise<ProviderSendNotificationResultsDTO> {
+    if (!this.from) {
+      this.logger.warn("Resend: no sender configured — skipping email send.")
+      return {}
+    }
+
     const { to, template, data } = notification
 
     const subject = this.getSubject(template, data as Record<string, unknown>)
