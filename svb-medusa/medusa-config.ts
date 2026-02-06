@@ -10,9 +10,11 @@ const backendUrl = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
 // Redis module config (production only — optional for dev)
 const redisUrl = process.env.REDIS_URL
 
-const modules: Record<string, any> = {
-  // Resend email notification provider
-  [Modules.NOTIFICATION]: {
+const modules: Record<string, any> = {}
+
+// Resend email notification provider
+if (process.env.RESEND_API_KEY) {
+  modules[Modules.NOTIFICATION] = {
     resolve: "@medusajs/medusa/notification",
     options: {
       providers: [
@@ -27,10 +29,12 @@ const modules: Record<string, any> = {
         },
       ],
     },
-  },
+  }
+}
 
-  // Cloudflare R2 file storage
-  [Modules.FILE]: {
+// Cloudflare R2 file storage (only if R2 is configured)
+if (process.env.R2_ENDPOINT && process.env.R2_ACCESS_KEY_ID) {
+  modules[Modules.FILE] = {
     resolve: "@medusajs/file",
     options: {
       providers: [
@@ -55,7 +59,7 @@ const modules: Record<string, any> = {
         },
       ],
     },
-  },
+  }
 }
 
 // Use Redis for event bus and caching in production
