@@ -1,19 +1,21 @@
 {
   "name": "svb-medusa",
-  "version": "0.0.1",
-  "description": "A starter for Medusa projects.",
-  "author": "Medusa (https://medusajs.com)",
+  "version": "1.0.0",
+  "description": "SVB Sports — Medusa v2 commerce backend for cricket equipment e-commerce",
+  "author": "SVB Sports",
   "license": "MIT",
   "keywords": [
-    "sqlite",
     "postgres",
     "typescript",
     "ecommerce",
     "headless",
-    "medusa"
+    "medusa",
+    "cricket",
+    "svb-sports"
   ],
   "scripts": {
     "build": "medusa build",
+    "predeploy": "medusa db:migrate",
     "seed": "medusa exec ./src/scripts/seed.ts",
     "start": "medusa start --host 0.0.0.0",
     "dev": "medusa develop",
@@ -23,11 +25,14 @@
   },
   "dependencies": {
     "@medusajs/admin-sdk": "2.12.2",
+    "@medusajs/cache-redis": "^2.13.1",
     "@medusajs/cli": "2.12.2",
+    "@medusajs/event-bus-redis": "^2.13.1",
     "@medusajs/file": "^2.12.2",
     "@medusajs/file-s3": "^2.12.2",
     "@medusajs/framework": "2.12.2",
-    "@medusajs/medusa": "2.12.2"
+    "@medusajs/medusa": "2.12.2",
+    "resend": "^6.9.1"
   },
   "devDependencies": {
     "@medusajs/test-utils": "2.12.2",
