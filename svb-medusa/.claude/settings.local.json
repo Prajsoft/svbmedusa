@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:docs.medusajs.com)",
+      "Bash(yarn add:*)",
+      "Bash(yarn build)",
+      "WebFetch(domain:svbmedusa-production.up.railway.app)",
+      "Bash(npx medusa:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git rm:*)",
+      "Bash(test:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}
