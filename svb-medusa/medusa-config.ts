@@ -1,9 +1,9 @@
 import { loadEnv, defineConfig, Modules } from "@medusajs/framework/utils"
 
 // Only load .env in development (not in Railway/Render)
-if (process.env.NODE_ENV !== "production") {
+
   loadEnv(process.env.NODE_ENV || "development", process.cwd())
-}
+
 
 const backendUrl = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
 
@@ -95,7 +95,7 @@ export default defineConfig({
 
   admin: {
     backendUrl,
-    disable: process.env.DISABLE_ADMIN === "true",
+    disable: false,
   },
 
   modules,
