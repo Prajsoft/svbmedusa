@@ -85,6 +85,13 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
 
     const { to, template, data } = notification
 
+    // Skip Medusa's built-in order.created notification — we handle it via
+    // our own order.placed subscriber + sendOrderConfirmationWorkflow
+    if (template === "order-created-template") {
+      this.logger.info(`Skipping "${template}" (handled by order-placed workflow)`)
+      return {}
+    }
+
     const subject = this.getSubject(template, data as Record<string, unknown>)
     const html = this.getHtml(template, data as Record<string, unknown>)
 
