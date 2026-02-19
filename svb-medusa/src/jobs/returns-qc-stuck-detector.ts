@@ -1,5 +1,5 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
-import { runReturnsQcStuckDetector } from "./ops-alert-detectors"
+import { runReturnsQcStuckDetector } from "../modules/ops-alert-detectors"
 
 export default async function returnsQcStuckDetectorJob(
   container: MedusaContainer

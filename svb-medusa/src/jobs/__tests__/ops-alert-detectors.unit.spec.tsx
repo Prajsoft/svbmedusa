@@ -3,7 +3,7 @@ import {
   runCodCapturePendingDetector,
   runReturnsQcStuckDetector,
   runStuckFulfillmentDetector,
-} from "../ops-alert-detectors"
+} from "../../modules/ops-alert-detectors"
 
 function makeHarness(orders: Array<Record<string, unknown>>) {
   const query = {

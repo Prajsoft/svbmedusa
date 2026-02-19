@@ -1,5 +1,5 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
-import { runCodCapturePendingDetector } from "./ops-alert-detectors"
+import { runCodCapturePendingDetector } from "../modules/ops-alert-detectors"
 
 export default async function codCapturePendingDetectorJob(
   container: MedusaContainer

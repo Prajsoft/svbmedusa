@@ -1,5 +1,5 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
-import { runStuckFulfillmentDetector } from "./ops-alert-detectors"
+import { runStuckFulfillmentDetector } from "../modules/ops-alert-detectors"
 
 export default async function stuckFulfillmentDetectorJob(
   container: MedusaContainer
