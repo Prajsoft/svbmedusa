@@ -1,5 +1,9 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  toApiErrorResponse,
+  validationError,
+} from "../../../../modules/observability/errors"
 
 /**
  * GET /store/cart-order/:cart_id
@@ -9,41 +13,59 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
  * during cart completion (known Medusa v2 workflow engine issue).
  */
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
-  const { cart_id } = req.params
+  try {
+    const { cart_id } = req.params
 
-  if (!cart_id) {
-    res.status(400).json({ message: "cart_id is required" })
-    return
+    if (!cart_id) {
+      const mapped = toApiErrorResponse(
+        validationError("CART_ID_REQUIRED", "cart_id is required.")
+      )
+      res.status(mapped.status).json(mapped.body)
+      return
+    }
+
+    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+
+    const { data } = await query.graph({
+      entity: "order_cart",
+      fields: ["order_id"],
+      filters: { cart_id },
+    })
+
+    const orderId = data?.[0]?.order_id
+
+    if (!orderId) {
+      const mapped = toApiErrorResponse(
+        validationError("ORDER_NOT_FOUND", "No order found for this cart.", {
+          httpStatus: 404,
+        })
+      )
+      res.status(mapped.status).json(mapped.body)
+      return
+    }
+
+    // Fetch the order with shipping address for redirect
+    const { data: orders } = await query.graph({
+      entity: "order",
+      fields: ["id", "shipping_address.country_code"],
+      filters: { id: orderId },
+    })
+
+    const order = orders?.[0]
+
+    if (!order) {
+      const mapped = toApiErrorResponse(
+        validationError("ORDER_NOT_FOUND", "Order not found.", {
+          httpStatus: 404,
+        })
+      )
+      res.status(mapped.status).json(mapped.body)
+      return
+    }
+
+    res.json({ order })
+  } catch (error) {
+    const mapped = toApiErrorResponse(error)
+    res.status(mapped.status).json(mapped.body)
   }
-
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-
-  const { data } = await query.graph({
-    entity: "order_cart",
-    fields: ["order_id"],
-    filters: { cart_id },
-  })
-
-  const orderId = data?.[0]?.order_id
-
-  if (!orderId) {
-    res.status(404).json({ message: "No order found for this cart" })
-    return
-  }
-
-  // Fetch the order with shipping address for redirect
-  const { data: orders } = await query.graph({
-    entity: "order",
-    fields: ["id", "shipping_address.country_code"],
-    filters: { id: orderId },
-  })
-
-  const order = orders?.[0]
-
-  if (!order) {
-    res.status(404).json({ message: "Order not found" })
-    return
-  }
-
-  res.json({ order })
 }

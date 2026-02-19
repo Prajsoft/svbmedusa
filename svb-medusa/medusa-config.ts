@@ -1,4 +1,5 @@
 import { loadEnv, defineConfig, Modules } from "@medusajs/framework/utils"
+import { OBSERVABILITY_MODULE } from "./src/modules/observability"
 
 // Only load .env in development (not in Railway/Render)
 
@@ -11,6 +12,22 @@ const backendUrl = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
 const redisUrl = process.env.REDIS_URL
 
 const modules: Record<string, any> = {}
+
+modules[OBSERVABILITY_MODULE] = {
+  resolve: "./src/modules/observability",
+}
+
+modules[Modules.PAYMENT] = {
+  resolve: "@medusajs/payment",
+  options: {
+    providers: [
+      {
+        resolve: "./src/modules/payment-cod",
+        id: "cod",
+      },
+    ],
+  },
+}
 
 // Resend email notification provider
 if (process.env.RESEND_API_KEY) {

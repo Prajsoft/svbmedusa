@@ -113,3 +113,42 @@ type ShipmentContractV1 = {
 
 - `invoice_ref` should use the order number/reference.
 - `cod.enabled` and `cod.amount` are derived from order payment method and outstanding COD payable amount.
+
+## Runtime Wiring (v1)
+
+- Trigger mechanism: subscriber on `order.placed` (`src/subscribers/order-placed.ts`) calls fulfillment request asynchronously after order creation.
+- Why this is non-blocking:
+  - Order creation/checkout completes first.
+  - Fulfillment request execution is event-driven post-order and does not run inside the order transaction.
+- Failure handling:
+  - If fulfillment request fails, order is not rolled back.
+  - Order metadata is updated to `fulfillment_state_v1 = "pending"` with `fulfillment_last_error_v1`.
+  - Ops alert event is emitted: `fulfillment.request_failed`.
+
+## Internal Intent Persistence (v1)
+
+- Fulfillment intent is persisted in order metadata:
+  - `order.metadata.fulfillment_state_v1`
+  - `order.metadata.fulfillment_intents_v1[<order_id>:<fulfillment_attempt>]`
+- On `fulfillment_request`:
+  - `state = requested`
+  - `fulfillment_attempt = 1` (default)
+  - `shipment_contract_summary` persisted
+
+## Manual Internal Status Transitions (No Carrier Integration)
+
+- Workflow-backed transition action:
+  - `transitionFulfillmentStatusWorkflow` in `src/workflows/fulfillment-status.ts`
+- Admin-safe route:
+  - `POST /admin/fulfillment/orders/:order_id/status`
+  - body: `{ to_status, fulfillment_attempt?, reason? }`
+- Allowed transitions:
+  - `requested -> ready_for_shipment`
+  - `ready_for_shipment -> shipped`
+  - `shipped -> delivered`
+  - `delivered -> rto_initiated`
+  - `rto_initiated -> rto_delivered`
+- Idempotency:
+  - repeating same target status is a no-op (`changed=false`)
+- Audit event:
+  - `fulfillment.status_changed` emitted on state changes only

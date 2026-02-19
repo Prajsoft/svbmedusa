@@ -61,3 +61,20 @@ Then, pass the arguments in the `exec` command after the file path:
 ```bash
 npx medusa exec ./src/scripts/my-script.ts arg1 arg2
 ```
+
+---
+
+## Seed Promotions (Dev/Staging)
+
+Use this script to seed sample coupons with Medusa native promotion workflows:
+
+- `SVB10` (10% off)
+- `SVB100` (INR 100 off)
+
+The script is idempotent: if a coupon code already exists, it is skipped.
+
+Run:
+
+```bash
+npx medusa exec ./src/scripts/seed-promotions.ts
+```

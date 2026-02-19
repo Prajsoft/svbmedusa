@@ -52,6 +52,8 @@ Transition intent:
 
 `requested -> approved -> return_received -> replacement_reserved -> replacement_shipped -> delivered -> closed`
 
+Implementation choice (v1 runtime): replacement reservation is allowed only after `return_received`.
+
 Transition intent:
 - `requested`: customer initiated exchange request.
 - `approved`: exchange accepted by policy/ops.
