@@ -1,9 +1,12 @@
+import { validateAndTransformQuery } from "@medusajs/framework"
 import {
   defineMiddlewares,
+  errorHandler as defaultErrorHandler,
   type MedusaNextFunction,
   type MedusaRequest,
   type MedusaResponse,
 } from "@medusajs/framework/http"
+import { z } from "zod"
 import {
   assertValidSku,
 } from "../modules/catalog/validate-sku"
@@ -40,6 +43,12 @@ type ProductLike = {
   variants?: VariantLike[]
 }
 
+const productFeedQuerySchema = z.object({
+  currency_code: z.string().min(1, "currency_code is required"),
+  country_code: z.string().min(1, "country_code is required"),
+  token: z.string().min(1, "token is required"),
+})
+
 function normalizeMethod(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined
@@ -65,6 +74,34 @@ function normalizeEntityId(value: unknown): string | undefined {
 
   const normalized = value.trim()
   return normalized || undefined
+}
+
+function isProductFeedPath(req: MedusaRequest): boolean {
+  const path =
+    (typeof (req as any)?.path === "string" && (req as any).path) ||
+    (typeof (req as any)?.originalUrl === "string" && (req as any).originalUrl) ||
+    ""
+
+  return path === "/product-feed" || path.startsWith("/product-feed?")
+}
+
+function getProductFeedValidationMessage(error: unknown): string {
+  if (error && typeof error === "object" && "issues" in error) {
+    const issues = (error as { issues?: Array<{ message?: unknown }> }).issues
+    const firstIssue = Array.isArray(issues) ? issues[0] : undefined
+    if (typeof firstIssue?.message === "string" && firstIssue.message.trim()) {
+      return firstIssue.message.trim()
+    }
+  }
+
+  if (error instanceof Error && typeof error.message === "string") {
+    const message = error.message.replace(/^Invalid request:\s*/i, "").trim()
+    if (message) {
+      return message
+    }
+  }
+
+  return "Invalid query parameters."
 }
 
 export function correlationIdMiddleware(
@@ -320,10 +357,29 @@ export async function validateStoreCodPaymentAuthorizeWorkflow(
 }
 
 export default defineMiddlewares({
+  errorHandler: (error, req, res, next) => {
+    if (isProductFeedPath(req)) {
+      const message = getProductFeedValidationMessage(error)
+      res.status(400).json({
+        error: {
+          code: "INVALID_QUERY",
+          message,
+        },
+      })
+      return
+    }
+
+    return defaultErrorHandler()(error, req, res, next)
+  },
   routes: [
     {
       matcher: /^\/(store|admin)(\/|$)/,
       middlewares: [correlationIdMiddleware],
+    },
+    {
+      methods: ["GET"],
+      matcher: "/product-feed",
+      middlewares: [validateAndTransformQuery(productFeedQuerySchema, {})],
     },
     {
       methods: ["POST"],

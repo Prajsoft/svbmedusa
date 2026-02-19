@@ -48,6 +48,15 @@ Medusa is a set of commerce modules and tools that allow you to build rich, reli
 
 Learn more about [Medusa’s architecture](https://docs.medusajs.com/learn/introduction/architecture) and [commerce modules](https://docs.medusajs.com/learn/fundamentals/modules/commerce-modules) in the Docs.
 
+## Product Feed Config
+
+The `/product-feed` endpoint is guarded and disabled by default. Configure these variables:
+
+- `ENABLE_PRODUCT_FEED=false`
+- `PRODUCT_FEED_TOKEN=<long-random-token>`
+- `STOREFRONT_URL=<your storefront domain>`
+- `PRICES_ARE_MINOR_UNITS=true`
+
 ## Community & Contributions
 
 The community and core team are available in [GitHub Discussions](https://github.com/medusajs/medusa/discussions), where you can ask for support, discuss roadmap, and share ideas.
