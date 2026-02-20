@@ -1,5 +1,6 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { correlationIdMiddleware } from "../middlewares"
+import middlewaresConfig from "../middlewares"
 import { emitBusinessEvent } from "../../modules/logging/business-events"
 
 function makeScope(eventBus: { emit: jest.Mock }) {
@@ -58,7 +59,7 @@ describe("correlation id middleware and propagation", () => {
     expect(next).toHaveBeenCalledTimes(1)
   })
 
-  it("generates and propagates correlation_id to emitted business events", async () => {
+  it("generates correlation_id when header is missing and returns it in response header", async () => {
     const eventBus = { emit: jest.fn(async () => undefined) }
     const { scope } = makeScope(eventBus)
 
@@ -93,6 +94,10 @@ describe("correlation id middleware and propagation", () => {
 
     expect(req.correlation_id).toEqual(expect.any(String))
     expect(req.correlation_id.length).toBeGreaterThan(10)
+    expect(res.setHeader).toHaveBeenCalledWith(
+      "x-correlation-id",
+      req.correlation_id
+    )
 
     expect(eventBus.emit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -104,5 +109,45 @@ describe("correlation id middleware and propagation", () => {
         }),
       })
     )
+  })
+
+  it("includes correlation_id in error JSON from middleware error handler", async () => {
+    const eventBus = { emit: jest.fn(async () => undefined) }
+    const { scope } = makeScope(eventBus)
+
+    const req = {
+      headers: {},
+      method: "POST",
+      originalUrl: "/store/carts/cart_01/complete",
+      path: "/store/carts/cart_01/complete",
+      params: { id: "cart_01" },
+      scope,
+    } as any
+
+    const res: any = {
+      statusCode: 200,
+      body: undefined as unknown,
+      status: jest.fn(function (code: number) {
+        res.statusCode = code
+        return res
+      }),
+      json: jest.fn(function (payload: unknown) {
+        res.body = payload
+        return res
+      }),
+    }
+
+    const config = middlewaresConfig as any
+    await config.errorHandler(new Error("boom"), req, res, jest.fn())
+
+    expect(res.statusCode).toBe(500)
+    expect(res.body).toEqual({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "An unexpected error occurred.",
+        details: {},
+        correlation_id: expect.any(String),
+      },
+    })
   })
 })

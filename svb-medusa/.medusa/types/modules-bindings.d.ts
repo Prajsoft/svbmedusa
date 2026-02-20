@@ -23,6 +23,7 @@ import type { IEventBusModuleService } from '@medusajs/framework/types'
 import type { IWorkflowEngineService } from '@medusajs/framework/types'
 import type { ILockingModule } from '@medusajs/framework/types'
 import type { IFileModuleService } from '@medusajs/framework/types'
+import type Observability from '../../src/modules/observability'
 
 declare module '@medusajs/framework/types' {
   interface ModuleImplementations {
@@ -50,6 +51,7 @@ declare module '@medusajs/framework/types' {
     'event_bus': IEventBusModuleService,
     'workflows': IWorkflowEngineService,
     'locking': ILockingModule,
-    'file': IFileModuleService
+    'file': IFileModuleService,
+    'observability': InstanceType<(typeof Observability)['service']>
   }
 }

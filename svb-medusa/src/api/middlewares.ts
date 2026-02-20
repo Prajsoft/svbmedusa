@@ -1,7 +1,6 @@
 import { validateAndTransformQuery } from "@medusajs/framework"
 import {
   defineMiddlewares,
-  errorHandler as defaultErrorHandler,
   type MedusaNextFunction,
   type MedusaRequest,
   type MedusaResponse,
@@ -32,8 +31,8 @@ import {
   runWithCorrelationContext,
   setCorrelationContext,
 } from "../modules/logging/correlation"
-import { logStructured } from "../modules/logging/structured-logger"
-import { toApiErrorResponse } from "../modules/observability/errors"
+import { logEvent } from "../modules/logging/log-event"
+import { toAppError } from "../modules/observability/errors"
 
 type VariantLike = {
   sku?: unknown
@@ -104,6 +103,71 @@ function getProductFeedValidationMessage(error: unknown): string {
   return "Invalid query parameters."
 }
 
+function getRequestCorrelationId(req: MedusaRequest): string {
+  const fromReq = normalizePath((req as any)?.correlation_id)
+  if (fromReq) {
+    return fromReq
+  }
+
+  const computed = extractCorrelationIdFromRequest(req as any)
+  ;(req as any).correlation_id = computed
+  return computed
+}
+
+function sendApiErrorEnvelope(
+  req: MedusaRequest,
+  res: MedusaResponse,
+  error: unknown,
+  fallback: {
+    code?: string
+    message?: string
+    httpStatus?: number
+    category?: "validation" | "integrity" | "transient_external" | "permanent_external" | "internal"
+  } = {}
+): void {
+  const appError = toAppError(error, fallback)
+  const correlationId = getRequestCorrelationId(req)
+
+  res.status(appError.httpStatus).json({
+    error: {
+      code: appError.code,
+      message: appError.message,
+      details: appError.details ?? {},
+      correlation_id: correlationId,
+    },
+  })
+}
+
+export function correlationResponseBodyMiddleware(
+  req: MedusaRequest,
+  res: MedusaResponse,
+  next: MedusaNextFunction
+): void {
+  const correlationId = getRequestCorrelationId(req)
+  const originalJson = (res as any).json
+
+  if (typeof originalJson !== "function") {
+    next()
+    return
+  }
+
+  ;(res as any).json = (payload: unknown) => {
+    if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+      const body = payload as Record<string, unknown>
+      if (!("correlation_id" in body)) {
+        return originalJson.call(res, {
+          ...body,
+          correlation_id: correlationId,
+        })
+      }
+    }
+
+    return originalJson.call(res, payload)
+  }
+
+  next()
+}
+
 export function correlationIdMiddleware(
   req: MedusaRequest,
   res: MedusaResponse,
@@ -125,17 +189,21 @@ export function correlationIdMiddleware(
       return_id: normalizeEntityId((req as any)?.params?.return_id),
     })
 
-    logStructured((req as any).scope, "info", "HTTP request received", {
-      correlation_id: correlationId,
-      step_name: "http_request",
-      cart_id: normalizeEntityId((req as any)?.params?.id),
-      order_id: normalizeEntityId((req as any)?.params?.order_id),
-      return_id: normalizeEntityId((req as any)?.params?.return_id),
-      meta: {
+    logEvent(
+      "http.request.received",
+      {
+        step_name: "http_request",
+        cart_id: normalizeEntityId((req as any)?.params?.id),
+        order_id: normalizeEntityId((req as any)?.params?.order_id),
+        return_id: normalizeEntityId((req as any)?.params?.return_id),
         method: normalizeMethod((req as any)?.method),
         path: normalizePath((req as any)?.originalUrl ?? (req as any)?.url),
       },
-    })
+      correlationId,
+      {
+        scopeOrLogger: (req as any).scope,
+      }
+    )
 
     next()
   })
@@ -183,8 +251,7 @@ function makeSkuValidationMiddleware(
       validator((req.body as Record<string, unknown>) ?? {})
       next()
     } catch (error) {
-      const mapped = toApiErrorResponse(error)
-      res.status(mapped.status).json(mapped.body)
+      sendApiErrorEnvelope(req, res, error)
     }
   }
 }
@@ -201,8 +268,7 @@ export function makeInventoryValidationMiddleware(
       await validator(req)
       next()
     } catch (error) {
-      const mapped = toApiErrorResponse(error)
-      res.status(mapped.status).json(mapped.body)
+      sendApiErrorEnvelope(req, res, error)
     }
   }
 }
@@ -219,8 +285,7 @@ export function makeLogisticsValidationMiddleware(
       await validator(req)
       next()
     } catch (error) {
-      const mapped = toApiErrorResponse(error)
-      res.status(mapped.status).json(mapped.body)
+      sendApiErrorEnvelope(req, res, error)
     }
   }
 }
@@ -237,8 +302,7 @@ export function makeShippingOptionEligibilityMiddleware(
       await validator(req)
       next()
     } catch (error) {
-      const mapped = toApiErrorResponse(error)
-      res.status(mapped.status).json(mapped.body)
+      sendApiErrorEnvelope(req, res, error)
     }
   }
 }
@@ -255,8 +319,7 @@ export function makeCheckoutPaymentWorkflowMiddleware(
       await validator(req)
       next()
     } catch (error) {
-      const mapped = toApiErrorResponse(error)
-      res.status(mapped.status).json(mapped.body)
+      sendApiErrorEnvelope(req, res, error)
     }
   }
 }
@@ -357,24 +420,33 @@ export async function validateStoreCodPaymentAuthorizeWorkflow(
 }
 
 export default defineMiddlewares({
-  errorHandler: (error, req, res, next) => {
+  errorHandler: (error, req, res) => {
     if (isProductFeedPath(req)) {
       const message = getProductFeedValidationMessage(error)
-      res.status(400).json({
-        error: {
+      sendApiErrorEnvelope(
+        req,
+        res,
+        {
           code: "INVALID_QUERY",
           message,
+          details: {},
         },
-      })
+        {
+          code: "INVALID_QUERY",
+          message,
+          httpStatus: 400,
+          category: "validation",
+        }
+      )
       return
     }
 
-    return defaultErrorHandler()(error, req, res, next)
+    sendApiErrorEnvelope(req, res, error)
   },
   routes: [
     {
-      matcher: /^\/(store|admin)(\/|$)/,
-      middlewares: [correlationIdMiddleware],
+      matcher: /^\/(store|admin|hooks)(\/|$)/,
+      middlewares: [correlationIdMiddleware, correlationResponseBodyMiddleware],
     },
     {
       methods: ["GET"],

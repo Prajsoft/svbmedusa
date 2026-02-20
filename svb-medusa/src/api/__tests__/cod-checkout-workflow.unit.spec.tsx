@@ -273,8 +273,12 @@ describe("COD checkout workflow wiring", () => {
     expect(orderPlace).not.toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(400)
     expect(res.json).toHaveBeenCalledWith({
-      code: "PAYMENT_NOT_AUTHORIZED",
-      message: "COD payment authorization failed before order placement.",
+      error: {
+        code: "PAYMENT_NOT_AUTHORIZED",
+        message: "COD payment authorization failed before order placement.",
+        details: {},
+        correlation_id: expect.any(String),
+      },
     })
     expect(eventBus.emit).not.toHaveBeenCalled()
   })
@@ -389,8 +393,12 @@ describe("COD checkout workflow wiring", () => {
     expect(next).not.toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(400)
     expect(res.json).toHaveBeenCalledWith({
-      code: "COUPON_INVALID",
-      message: "Coupon SAVE10 is no longer valid for this cart.",
+      error: {
+        code: "COUPON_INVALID",
+        message: "Coupon SAVE10 is no longer valid for this cart.",
+        details: {},
+        correlation_id: expect.any(String),
+      },
     })
   })
 
@@ -478,8 +486,12 @@ describe("COD checkout workflow wiring", () => {
     expect(next).not.toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(400)
     expect(res.json).toHaveBeenCalledWith({
-      code: "PRICE_INTEGRITY_VIOLATION",
-      message: "Price integrity violation: grand_total cannot be negative.",
+      error: {
+        code: "PRICE_INTEGRITY_VIOLATION",
+        message: "Price integrity violation: grand_total cannot be negative.",
+        details: {},
+        correlation_id: expect.any(String),
+      },
     })
 
     const snapshot = getMetricsSnapshot()

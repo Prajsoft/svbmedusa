@@ -81,6 +81,7 @@ function sanitizeValue(value: unknown, depth = 0): unknown {
       value as Record<string, unknown>
     )) {
       if (SECRET_KEY_PATTERN.test(key) || ADDRESS_KEY_PATTERN.test(key)) {
+        sanitized[key] = "[REDACTED]"
         continue
       }
 

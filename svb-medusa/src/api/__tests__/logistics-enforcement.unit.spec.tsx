@@ -65,9 +65,13 @@ describe("logistics metadata enforcement", () => {
     expect(next).not.toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(400)
     expect(res.json).toHaveBeenCalledWith({
-      code: "MISSING_LOGISTICS_METADATA",
-      message:
-        "SKU SVB-CRB-SWFP-WHT-P01 is missing logistics metadata: weight_grams",
+      error: {
+        code: "MISSING_LOGISTICS_METADATA",
+        message:
+          "SKU SVB-CRB-SWFP-WHT-P01 is missing logistics metadata: weight_grams",
+        details: {},
+        correlation_id: expect.any(String),
+      },
     })
   })
 

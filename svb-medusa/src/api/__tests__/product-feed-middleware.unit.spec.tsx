@@ -70,10 +70,12 @@ describe("product-feed middleware query validation", () => {
 
     expect(res.status).toHaveBeenCalledWith(400)
     expect(res.json).toHaveBeenCalledWith({
-      error: {
+      error: expect.objectContaining({
         code: "INVALID_QUERY",
         message: expect.stringContaining("currency_code"),
-      },
+        details: {},
+        correlation_id: expect.any(String),
+      }),
     })
   })
 })

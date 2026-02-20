@@ -109,9 +109,13 @@ describe("cart shipping-option selection eligibility", () => {
     expect(next).not.toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(400)
     expect(res.json).toHaveBeenCalledWith({
-      code: "SHIPPING_OPTION_INELIGIBLE",
-      message:
-        "COD allowed only when all cart variants have metadata.cod_eligible=true",
+      error: {
+        code: "SHIPPING_OPTION_INELIGIBLE",
+        message:
+          "COD allowed only when all cart variants have metadata.cod_eligible=true",
+        details: {},
+        correlation_id: expect.any(String),
+      },
     })
   })
 })

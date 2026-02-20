@@ -57,6 +57,78 @@ The `/product-feed` endpoint is guarded and disabled by default. Configure these
 - `STOREFRONT_URL=<your storefront domain>`
 - `PRICES_ARE_MINOR_UNITS=true`
 
+## Payments
+
+- [Payments Overview (Foundation)](docs/payments/overview.md)
+- [Payments State Machine Spec](docs/payments/state-machine.md)
+- [Payments Webhooks](docs/payments/webhooks.md)
+- [Payments Observability](docs/payments/observability.md)
+- [Payments Reconciliation](docs/payments/reconciliation.md)
+- [Adding a Payment Provider](docs/payments/adding-a-provider.md)
+- [Pluggable Payments Foundation (v1)](docs/architecture/payments-pluggable-v1.md)
+- [Razorpay Integration (architecture + operations)](docs/payments/razorpay.md)
+- [Razorpay WIP QA Runbook](docs/razorpay-wip-test.md)
+
+## Razorpay Test Mode (v1)
+
+Razorpay is wired as a Medusa payment provider (`pp_razorpay_razorpay`) and stays server-side only.
+
+Required env:
+
+- `PAYMENTS_MODE=test`
+- `ENABLE_RAZORPAY=true`
+- `RAZORPAY_KEY_ID=rzp_test_...`
+- `RAZORPAY_KEY_SECRET=...`
+- `RAZORPAY_WEBHOOK_SECRET=...`
+- `PAYMENTS_ALLOW_UNVERIFIED_WEBHOOKS=false` (keep false outside controlled emergency testing)
+
+Guardrails at boot:
+
+- `PAYMENTS_MODE=test` + `rzp_live_` key => app boot fails.
+- `PAYMENTS_MODE=live` + `rzp_test_` key => app boot fails.
+- Missing `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` => app boot fails (`RAZORPAY_CONFIG_MISSING`).
+- Missing `RAZORPAY_WEBHOOK_SECRET` in `PAYMENTS_MODE=live` => app boot fails (`RAZORPAY_CONFIG_MISSING`).
+- Missing Razorpay provider registration at boot => app boot fails (`RAZORPAY_PROVIDER_REGISTRATION_FAILED`).
+- Invalid `PAYMENT_PROVIDER_DEFAULT` (not registered at boot) => app boot fails (`PAYMENT_PROVIDER_DEFAULT_INVALID`).
+- Invalid startup config is logged as structured event `RAZORPAY_CONFIG_INVALID` without secrets.
+- Webhooks are verified by default; unverified acceptance only works with explicit `PAYMENTS_ALLOW_UNVERIFIED_WEBHOOKS=true`.
+
+Webhook endpoint:
+
+- `POST /hooks/payment/razorpay_razorpay`
+- `POST /webhooks/payments/razorpay` (canonical shared webhook pipeline route)
+- `POST /webhooks/razorpay` (deprecated compatibility alias that delegates to shared pipeline)
+- Webhook idempotency is stored in `razorpay_webhook_events` (`id` unique, with `event_type`, `provider_payment_id`, `created_at`).
+- Duplicate webhook events are ignored and logged as `WEBHOOK_DEDUP_HIT`.
+- Reconciliation mapping:
+  - `payment.authorized` => authorized
+  - `payment.captured` => captured/paid
+  - `payment.failed` => failed/error
+
+For v1, INR is enforced in backend payment validation.
+- Razorpay API calls use one canonical SDK client (`getRazorpayClient`) and `razorpayRequest(...)`.
+- Retry policy is strict: retry only on network errors, HTTP `429`, and `5xx` (max 3 attempts with exponential backoff + jitter).
+- `initiatePayment` is idempotent and concurrency-safe per Medusa payment session (single Razorpay order persisted in `razorpay_session_order_v1` with metadata).
+- Order creation logs `RAZORPAY_ORDER_CREATE_ATTEMPT` and `RAZORPAY_ORDER_CREATED` with `correlation_id`.
+- Upstream error mapping: `401/403 -> RAZORPAY_AUTH_FAILED`, `400 -> RAZORPAY_BAD_REQUEST`, `429 -> RAZORPAY_RATE_LIMIT`, `network/5xx -> RAZORPAY_UPSTREAM_ERROR`.
+- Checkout authorization verifies Razorpay HMAC signature server-side (`order_id|payment_id`) before setting `AUTHORIZED`.
+- Authorization failures: missing payload fields => `VALIDATION_ERROR`; signature mismatch => `SIGNATURE_INVALID`.
+- Signature verification logs: `RAZORPAY_SIGNATURE_VERIFICATION_OK` and `RAZORPAY_SIGNATURE_VERIFICATION_FAIL`.
+- `cancelPayment` marks unpaid sessions as canceled and rejects paid sessions with `CANNOT_CANCEL_PAID_PAYMENT`.
+- `refundPayment` is intentionally not available in v1 and returns `REFUND_NOT_IMPLEMENTED`.
+- Observability events include: `RAZORPAY_ORDER_CREATED`, `RAZORPAY_CHECKOUT_INITIATED`, `RAZORPAY_SIGNATURE_OK/FAIL`, `RAZORPAY_WEBHOOK_OK/FAIL`.
+- Counters emitted: `razorpay.order_create.success|fail`, `razorpay.authorize.success|fail`, `razorpay.webhook.success|fail`.
+- Internal debug helper: `GET /admin/ops/debug/razorpay-payment?cart_id=...` or `?order_id=...` (admin auth required).
+- Reconciliation job: `src/jobs/payment-reconciliation.ts` (stuck session scan + idempotent forward reconciliation).
+- `.env.template` defaults `RAZORPAY_TEST_AUTO_AUTHORIZE=false`; set it explicitly only for local test shortcuts.
+
+## Correlation + Logging
+
+- Backend requests read `x-correlation-id` when provided, otherwise generate UUIDs.
+- Response header always includes `x-correlation-id`.
+- Error JSON includes `correlation_id`.
+- Structured event logging uses `logEvent(eventName, payload, correlation_id)` with automatic redaction for secrets and authorization headers.
+
 ## Community & Contributions
 
 The community and core team are available in [GitHub Discussions](https://github.com/medusajs/medusa/discussions), where you can ask for support, discuss roadmap, and share ideas.
