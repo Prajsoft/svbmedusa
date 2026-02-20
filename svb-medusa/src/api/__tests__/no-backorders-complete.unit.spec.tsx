@@ -106,13 +106,19 @@ describe("no-backorders final gate on cart completion", () => {
     expect(orderCreated).not.toHaveBeenCalled()
     expect(reservationsApplied).not.toHaveBeenCalled()
     expect(res.status).toHaveBeenCalledWith(400)
-    expect(res.json).toHaveBeenCalledWith({
-      error: {
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
         code: "OUT_OF_STOCK",
-        message: "Insufficient inventory for SKU SVB-CRB-SWFP-WHT-P01 at WH-MRT-01",
+        message: expect.stringContaining("Support Code:"),
         details: {},
         correlation_id: expect.any(String),
-      },
-    })
+        error: {
+          code: "OUT_OF_STOCK",
+          message: "Insufficient inventory for SKU SVB-CRB-SWFP-WHT-P01 at WH-MRT-01",
+          details: {},
+          correlation_id: expect.any(String),
+        },
+      })
+    )
   })
 })

@@ -69,13 +69,19 @@ describe("product-feed middleware query validation", () => {
     await config.errorHandler(capturedError, req, res, jest.fn())
 
     expect(res.status).toHaveBeenCalledWith(400)
-    expect(res.json).toHaveBeenCalledWith({
-      error: expect.objectContaining({
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
         code: "INVALID_QUERY",
-        message: expect.stringContaining("currency_code"),
+        message: expect.stringContaining("Support Code:"),
         details: {},
         correlation_id: expect.any(String),
-      }),
-    })
+        error: expect.objectContaining({
+          code: "INVALID_QUERY",
+          message: expect.stringContaining("currency_code"),
+          details: {},
+          correlation_id: expect.any(String),
+        }),
+      })
+    )
   })
 })

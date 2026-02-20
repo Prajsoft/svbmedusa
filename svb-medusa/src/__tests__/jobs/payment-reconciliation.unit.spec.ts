@@ -1,4 +1,4 @@
-import paymentReconciliationJob, { config } from "../payment-reconciliation"
+import paymentReconciliationJob, { config } from "../../jobs/payment-reconciliation"
 import { runStuckPaymentReconciliation } from "../../modules/payments-core"
 
 jest.mock("../../modules/payments-core", () => ({

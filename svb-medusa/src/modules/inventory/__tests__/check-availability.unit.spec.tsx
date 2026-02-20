@@ -50,6 +50,8 @@ function baseVariant() {
   return {
     id: "variant_1",
     sku: "SVB-CRB-SWFP-WHT-P01",
+    manage_inventory: true,
+    allow_backorder: false,
     inventory_items: [
       {
         inventory_item_id: "iitem_1",
@@ -131,6 +133,44 @@ describe("no-backorders availability checks", () => {
       },
       variant: baseVariant(),
       availableQuantity: 2,
+    })
+
+    await expect(
+      checkAvailabilityForAddToCart(scope, "cart_1", "variant_1", 1)
+    ).resolves.toBeUndefined()
+  })
+
+  it("allows add-to-cart when variant does not manage inventory", async () => {
+    const scope = createScope({
+      cart: {
+        id: "cart_1",
+        sales_channel_id: "sc_1",
+        items: [],
+      },
+      variant: {
+        ...baseVariant(),
+        manage_inventory: false,
+      },
+      availableQuantity: 0,
+    })
+
+    await expect(
+      checkAvailabilityForAddToCart(scope, "cart_1", "variant_1", 1)
+    ).resolves.toBeUndefined()
+  })
+
+  it("allows add-to-cart when variant allows backorder", async () => {
+    const scope = createScope({
+      cart: {
+        id: "cart_1",
+        sales_channel_id: "sc_1",
+        items: [],
+      },
+      variant: {
+        ...baseVariant(),
+        allow_backorder: true,
+      },
+      availableQuantity: 0,
     })
 
     await expect(

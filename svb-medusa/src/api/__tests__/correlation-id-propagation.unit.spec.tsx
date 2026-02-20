@@ -142,6 +142,10 @@ describe("correlation id middleware and propagation", () => {
 
     expect(res.statusCode).toBe(500)
     expect(res.body).toEqual({
+      code: "INTERNAL_ERROR",
+      message: expect.stringContaining("Support Code:"),
+      details: {},
+      correlation_id: expect.any(String),
       error: {
         code: "INTERNAL_ERROR",
         message: "An unexpected error occurred.",

@@ -35,6 +35,8 @@ type VariantInventoryLike = {
 type VariantLike = {
   id: string
   sku?: string | null
+  manage_inventory?: boolean | null
+  allow_backorder?: boolean | null
   inventory_items?: VariantInventoryLike[]
 }
 
@@ -104,6 +106,8 @@ async function getVariant(scope: ScopeLike, variantId: string): Promise<VariantL
     fields: [
       "id",
       "sku",
+      "manage_inventory",
+      "allow_backorder",
       "inventory_items.inventory_item_id",
       "inventory_items.required_quantity",
       "inventory_items.inventory.location_levels.location_id",
@@ -201,6 +205,13 @@ async function assertVariantQuantityAvailable(
   requestedQuantity: number
 ): Promise<void> {
   const variant = await getVariant(scope, variantId)
+
+  // Variants that do not track inventory (or explicitly allow backorders)
+  // should not be blocked by sellable stock checks.
+  if (variant.manage_inventory === false || variant.allow_backorder === true) {
+    return
+  }
+
   const sku = variant.sku || variant.id
   const available = await getAvailableQuantityForVariantAtWarehouse(
     scope,

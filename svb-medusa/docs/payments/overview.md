@@ -34,6 +34,8 @@ flowchart TD
   - `PaymentEvent`
   - Standard error shape:
     - `{ "error": { "code", "message", "details", "correlation_id" } }`
+  - Compatibility fields at root may also be returned for SDK consumers:
+    - `{ "code", "message", "details", "correlation_id" }`
 
 ### State Machine
 

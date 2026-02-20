@@ -103,6 +103,18 @@ function getProductFeedValidationMessage(error: unknown): string {
   return "Invalid query parameters."
 }
 
+function formatPublicErrorMessage(message: string, correlationId: string): string {
+  const trimmed = typeof message === "string" ? message.trim() : ""
+  const base = trimmed || "An unexpected error occurred."
+  const normalized = base.endsWith(".") ? base : `${base}.`
+
+  if (/support\s*code\s*:/i.test(normalized)) {
+    return normalized
+  }
+
+  return `${normalized} Support Code: ${correlationId}.`
+}
+
 function getRequestCorrelationId(req: MedusaRequest): string {
   const fromReq = normalizePath((req as any)?.correlation_id)
   if (fromReq) {
@@ -127,12 +139,18 @@ function sendApiErrorEnvelope(
 ): void {
   const appError = toAppError(error, fallback)
   const correlationId = getRequestCorrelationId(req)
+  const details = appError.details ?? {}
+  const publicMessage = formatPublicErrorMessage(appError.message, correlationId)
 
   res.status(appError.httpStatus).json({
+    code: appError.code,
+    message: publicMessage,
+    details,
+    correlation_id: correlationId,
     error: {
       code: appError.code,
       message: appError.message,
-      details: appError.details ?? {},
+      details,
       correlation_id: correlationId,
     },
   })
@@ -420,7 +438,7 @@ export async function validateStoreCodPaymentAuthorizeWorkflow(
 }
 
 export default defineMiddlewares({
-  errorHandler: (error, req, res) => {
+  errorHandler: (error, req, res, _next) => {
     if (isProductFeedPath(req)) {
       const message = getProductFeedValidationMessage(error)
       sendApiErrorEnvelope(

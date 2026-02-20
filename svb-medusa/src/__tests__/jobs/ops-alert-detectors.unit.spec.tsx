@@ -267,4 +267,3 @@ describe("ops alert detectors", () => {
     expect(result.alerts_raised).toBe(1)
   })
 })
-

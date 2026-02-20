@@ -189,6 +189,10 @@ Backend error envelope:
 
 ```json
 {
+  "code": "ERROR_CODE",
+  "message": "Human readable message. Support Code: <correlation-id>.",
+  "details": {},
+  "correlation_id": "uuid-or-forwarded-id",
   "error": {
     "code": "ERROR_CODE",
     "message": "Human readable message",
