@@ -57,12 +57,17 @@ Rules:
 
 Webhook header requirement:
 - `anx-api-key` must match `SHIPROCKET_WEBHOOK_TOKEN`.
+- This is the active verification path used by `POST /webhooks/shipping/shiprocket`.
 
 Default:
 - reject unverified webhook with `401` (`SIGNATURE_INVALID` error envelope).
 
 Override:
 - `ALLOW_UNSIGNED_WEBHOOKS=true` accepts unverified webhook but logs `WEBHOOK_SECURITY_DEGRADED` and marks payload security mode as degraded.
+
+HMAC note:
+- `SHIPROCKET_WEBHOOK_SECRET` + `SHIPROCKET_WEBHOOK_SIGNATURE_HEADER` are used by provider-level `verifyWebhook(...)`.
+- The current webhook route already verifies `anx-api-key` and then passes `verify_signature: () => true` to the shared pipeline, so operators should treat `SHIPROCKET_WEBHOOK_TOKEN` as the mandatory runtime control.
 
 ## Status Mapping (Shiprocket -> Normalized)
 
@@ -93,7 +98,7 @@ Override:
 
 ## Label Expiry Strategy
 
-- Label is served via internal endpoint `GET /shipments/:id/label`.
+- Label is served via internal endpoint `GET /shipments/:id/label` (admin-authenticated).
 - Stored fields include:
   - `label_url`
   - `label_generated_at`
@@ -121,4 +126,3 @@ Future extension:
 - token cache keyed by `seller_id`
 - credentials stored in secure secret manager per seller/account
 - routing/booking chooses seller context explicitly (not global process env)
-

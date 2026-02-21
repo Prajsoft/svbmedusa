@@ -9,6 +9,11 @@ import {
   RazorpayProviderRegistrationError,
   assertRazorpayProviderRegistered,
 } from "./src/modules/payment-razorpay/provider-registration"
+import {
+  ShippingProviderConfigError,
+  shouldLogWebhookSecurityDegradedOnBoot,
+  validateShippingProviderConfig,
+} from "./src/integrations/carriers/config"
 
 // Only load .env in development (not in Railway/Render)
 
@@ -114,6 +119,35 @@ if (razorpayRequested) {
 
     throw error
   }
+}
+
+try {
+  validateShippingProviderConfig(process.env)
+} catch (error) {
+  const reason =
+    error instanceof ShippingProviderConfigError
+      ? error.code
+      : "SHIPPING_PROVIDER_CONFIG_UNKNOWN"
+  const message =
+    error instanceof ShippingProviderConfigError
+      ? error.reason
+      : "Unknown shipping provider config error."
+
+  console.error({
+    event: "SHIPPING_PROVIDER_CONFIG_INVALID",
+    reason,
+    message,
+  })
+
+  throw error
+}
+
+if (shouldLogWebhookSecurityDegradedOnBoot(process.env)) {
+  console.warn({
+    event: "WEBHOOK_SECURITY_DEGRADED",
+    reason:
+      "ALLOW_UNSIGNED_WEBHOOKS=true accepts unverified shipping webhooks. Keep false in production.",
+  })
 }
 
 const modules: Record<string, any> = {}

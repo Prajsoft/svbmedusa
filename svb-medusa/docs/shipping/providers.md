@@ -218,6 +218,7 @@ Access pattern:
 - always call internal endpoint `GET /shipments/:id/label`
 - do not use stale stored URL directly from UI
 - endpoint refreshes/regenerates as needed
+- endpoint requires authenticated admin actor (`auth_context.actor_id`)
 
 ## Endpoints and Jobs
 
@@ -229,8 +230,8 @@ Access pattern:
 ### Scheduled jobs
 
 - `shipping-booking-recovery` (`SHIPPING_BOOKING_RECOVERY_CRON`)
-- `shipping-webhook-buffer-replay` (`SHIPPING_WEBHOOK_REPLAY_CRON`)
-- `shipping-events-payload-retention` (`SHIPPING_EVENTS_PAYLOAD_RETENTION_CRON`)
+- `shipping-webhook-replay` (`SHIPPING_WEBHOOK_REPLAY_CRON`)
+- `shipping-events-payload-purge` (`SHIPPING_EVENTS_PAYLOAD_PURGE_CRON`)
 
 ## Environment Variables (Actual)
 
@@ -247,26 +248,27 @@ Provider selection and router:
 - `SHIPPING_ROUTER_BREAKER_OPEN_MS`
 
 Booking recovery and replay:
-- `SHIPPING_BOOKING_RECOVERY_STUCK_MINUTES`
-- `SHIPPING_BOOKING_RECOVERY_BATCH_SIZE`
-- `SHIPPING_BOOKING_RECOVERY_RUN_ON_STARTUP`
+- `SHIPPING_BOOKING_RECOVERY_OLDER_THAN_MINUTES`
+- `SHIPPING_BOOKING_RECOVERY_LIMIT`
 - `SHIPPING_BOOKING_RECOVERY_CRON`
 - `SHIPPING_WEBHOOK_REPLAY_BATCH_SIZE`
 - `SHIPPING_WEBHOOK_REPLAY_CRON`
 
 Retention:
 - `SHIPPING_EVENTS_PAYLOAD_TTL_DAYS`
-- `SHIPPING_EVENTS_PAYLOAD_RETENTION_CRON`
+- `SHIPPING_EVENTS_PAYLOAD_PURGE_CRON`
 
 Webhook security:
+- `SHIPROCKET_WEBHOOK_TOKEN` (route-level `anx-api-key` verification)
 - `ALLOW_UNSIGNED_WEBHOOKS` (default false)
-- `SHIPROCKET_WEBHOOK_SECRET`
-- `SHIPROCKET_WEBHOOK_IP_ALLOWLIST`
-- `SHIPROCKET_WEBHOOK_SIGNATURE_HEADER`
+- `SHIPROCKET_WEBHOOK_SECRET` (HMAC verification for direct provider `verifyWebhook` usage)
+- `SHIPROCKET_WEBHOOK_IP_ALLOWLIST` (optional, only for HMAC/IP flow)
+- `SHIPROCKET_WEBHOOK_SIGNATURE_HEADER` (optional override for HMAC/IP flow)
 
 Shiprocket provider auth/base URL:
-- `SHIPROCKET_TOKEN` or `SHIPROCKET_EMAIL` + `SHIPROCKET_PASSWORD`
-- `SHIPROCKET_API_BASE_URL`
+- `SHIPROCKET_TOKEN` or `SHIPROCKET_SELLER_EMAIL` + `SHIPROCKET_SELLER_PASSWORD`
+- fallback aliases: `SHIPROCKET_EMAIL` + `SHIPROCKET_PASSWORD`
+- `SHIPROCKET_BASE_URL` (fallback alias: `SHIPROCKET_API_BASE_URL`)
 - `SHIPROCKET_LABEL_TTL_HOURS`
 
 ## Provider Switch Playbook

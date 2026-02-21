@@ -71,6 +71,7 @@ What to verify:
 
 Endpoint to use in manual smoke tests:
 - `GET /shipments/:id/label`
+- requires authenticated admin actor (`auth_context.actor_id`)
 
 ## 4) Tracking and Legacy Provider Routing
 

@@ -231,6 +231,9 @@ function mapUnknownErrorCode(error: unknown): ProviderErrorCode {
   if (status === 429) {
     return "RATE_LIMITED"
   }
+  if (status === 404) {
+    return "SHIPMENT_NOT_FOUND"
+  }
   if (typeof status === "number" && status >= 500) {
     return "UPSTREAM_ERROR"
   }
@@ -245,6 +248,7 @@ function mapUnknownErrorCode(error: unknown): ProviderErrorCode {
     normalizedCode === "RATE_LIMITED" ||
     normalizedCode === "UPSTREAM_ERROR" ||
     normalizedCode === "INVALID_ADDRESS" ||
+    normalizedCode === "SHIPMENT_NOT_FOUND" ||
     normalizedCode === "BOOKING_DISABLED" ||
     normalizedCode === "CANNOT_CANCEL_IN_STATE" ||
     normalizedCode === "NOT_SUPPORTED" ||

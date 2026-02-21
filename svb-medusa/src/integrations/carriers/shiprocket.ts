@@ -569,6 +569,10 @@ export function mapShiprocketErrorCode(input: {
     return "RATE_LIMITED"
   }
 
+  if (status === 404) {
+    return "SHIPMENT_NOT_FOUND"
+  }
+
   if (status && status >= 500) {
     return "PROVIDER_UNAVAILABLE"
   }
@@ -1679,7 +1683,7 @@ export class ShiprocketProvider implements ShippingProvider {
 
       if (!lookedUp) {
         throw new ShippingProviderError({
-          code: "SERVICEABILITY_FAILED",
+          code: "SHIPMENT_NOT_FOUND",
           message:
             "Unable to find Shiprocket shipment for internal reference.",
           correlation_id: toCorrelationId(valid.correlation_id),

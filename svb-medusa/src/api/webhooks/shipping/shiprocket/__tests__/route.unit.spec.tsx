@@ -54,6 +54,8 @@ type WebhookBufferRow = {
   provider_event_id: string
   provider_shipment_id: string | null
   provider_awb: string | null
+  provider_order_id: string | null
+  internal_reference: string | null
   event_type: string
   payload_sanitized: Record<string, unknown> | null
   received_at: string
@@ -303,6 +305,8 @@ function makeHarness() {
           providerEventId,
           providerShipmentId,
           providerAwb,
+          providerOrderId,
+          internalReference,
           eventType,
           payloadSanitized,
         ] = bindings
@@ -325,6 +329,10 @@ function makeHarness() {
           provider_shipment_id:
             providerShipmentId === null ? null : String(providerShipmentId),
           provider_awb: providerAwb === null ? null : String(providerAwb),
+          provider_order_id:
+            providerOrderId === null ? null : String(providerOrderId),
+          internal_reference:
+            internalReference === null ? null : String(internalReference),
           event_type: String(eventType ?? ""),
           payload_sanitized:
             payloadSanitized && typeof payloadSanitized === "object"

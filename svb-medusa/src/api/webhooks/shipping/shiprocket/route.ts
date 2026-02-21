@@ -373,6 +373,8 @@ function mapProviderErrorStatus(code: string): number {
     case ProviderErrorCode.INVALID_ADDRESS:
     case ProviderErrorCode.NOT_SUPPORTED:
       return 400
+    case ProviderErrorCode.SHIPMENT_NOT_FOUND:
+      return 404
     case ProviderErrorCode.BOOKING_DISABLED:
     case ProviderErrorCode.PROVIDER_UNAVAILABLE:
       return 503

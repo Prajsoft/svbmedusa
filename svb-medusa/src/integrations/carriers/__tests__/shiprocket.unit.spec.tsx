@@ -808,6 +808,29 @@ describe("ShiprocketProvider HTTP behavior", () => {
     expect(tracked.events[0].location).toBe("Chennai")
   })
 
+  it("maps AWB tracking 404 to SHIPMENT_NOT_FOUND", async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      makeResponse(404, {
+        message: "Shipment not found",
+      })
+    )
+
+    const provider = new ShiprocketProvider({
+      fetch: fetchMock as any,
+      env: {
+        SHIPROCKET_TOKEN: "token_1",
+      } as any,
+    })
+
+    await expect(
+      provider.track({
+        tracking_number: "AWB_MISSING",
+      })
+    ).rejects.toMatchObject<ShippingProviderError>({
+      code: "SHIPMENT_NOT_FOUND",
+    })
+  })
+
   it("uses AWB tracking endpoint when both tracking_number and shipment_id are provided", async () => {
     const fetchMock = jest.fn().mockResolvedValue(
       makeResponse(200, {
@@ -1029,6 +1052,9 @@ describe("ShiprocketProvider mappings", () => {
     )
     expect(mapShiprocketErrorCode({ status: 429, message: "rate limited" })).toBe(
       "RATE_LIMITED"
+    )
+    expect(mapShiprocketErrorCode({ status: 404, message: "not found" })).toBe(
+      "SHIPMENT_NOT_FOUND"
     )
     expect(
       mapShiprocketErrorCode({

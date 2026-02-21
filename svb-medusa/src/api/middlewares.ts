@@ -1,5 +1,6 @@
 import { validateAndTransformQuery } from "@medusajs/framework"
 import {
+  authenticate,
   defineMiddlewares,
   type MedusaNextFunction,
   type MedusaRequest,
@@ -463,8 +464,20 @@ export default defineMiddlewares({
   },
   routes: [
     {
-      matcher: /^\/(store|admin|hooks)(\/|$)/,
+      matcher: /^\/(store|admin|hooks|webhooks|shipments)(\/|$)/,
       middlewares: [correlationIdMiddleware, correlationResponseBodyMiddleware],
+    },
+    {
+      methods: ["GET"],
+      matcher: "/shipments/:id/label",
+      middlewares: [authenticate("user", ["bearer", "session"])],
+    },
+    {
+      methods: ["POST"],
+      matcher: "/webhooks/shipping/shiprocket",
+      bodyParser: {
+        preserveRawBody: true,
+      },
     },
     {
       methods: ["GET"],

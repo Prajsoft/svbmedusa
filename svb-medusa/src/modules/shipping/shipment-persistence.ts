@@ -256,6 +256,8 @@ export type ShippingWebhookBufferRecord = {
   provider_event_id: string
   provider_shipment_id: string | null
   provider_awb: string | null
+  provider_order_id: string | null
+  internal_reference: string | null
   event_type: string
   payload_sanitized: Record<string, unknown> | null
   received_at: Date
@@ -357,6 +359,8 @@ function mapWebhookBufferRow(
     provider_event_id: readText(row.provider_event_id),
     provider_shipment_id: readNullableText(row.provider_shipment_id),
     provider_awb: readNullableText(row.provider_awb),
+    provider_order_id: readNullableText(row.provider_order_id),
+    internal_reference: readNullableText(row.internal_reference),
     event_type: readText(row.event_type),
     payload_sanitized:
       row.payload_sanitized && typeof row.payload_sanitized === "object"
@@ -484,12 +488,32 @@ function isUniqueConstraintViolation(
 }
 
 export class ShippingPersistenceRepository {
-  private schemaEnsured = false
+  private static schemaEnsured = false
+  private static schemaEnsuring: Promise<void> | null = null
 
   constructor(private readonly pgConnection: PgConnectionLike) {}
 
   async ensureSchema(): Promise<void> {
-    if (this.schemaEnsured) {
+    if (ShippingPersistenceRepository.schemaEnsured) {
+      return
+    }
+
+    if (ShippingPersistenceRepository.schemaEnsuring) {
+      await ShippingPersistenceRepository.schemaEnsuring
+      return
+    }
+
+    ShippingPersistenceRepository.schemaEnsuring = this.ensureSchemaInternal()
+    try {
+      await ShippingPersistenceRepository.schemaEnsuring
+      ShippingPersistenceRepository.schemaEnsured = true
+    } finally {
+      ShippingPersistenceRepository.schemaEnsuring = null
+    }
+  }
+
+  private async ensureSchemaInternal(): Promise<void> {
+    if (ShippingPersistenceRepository.schemaEnsured) {
       return
     }
 
@@ -572,6 +596,8 @@ export class ShippingPersistenceRepository {
         provider_event_id TEXT NOT NULL,
         provider_shipment_id TEXT,
         provider_awb TEXT,
+        provider_order_id TEXT,
+        internal_reference TEXT,
         event_type TEXT NOT NULL,
         payload_sanitized JSONB,
         received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -579,6 +605,16 @@ export class ShippingPersistenceRepository {
         retry_count INTEGER NOT NULL DEFAULT 0,
         UNIQUE (provider, provider_event_id)
       )
+    `)
+
+    await this.pgConnection.raw(`
+      ALTER TABLE ${SHIPPING_WEBHOOK_BUFFER_TABLE}
+      ADD COLUMN IF NOT EXISTS provider_order_id TEXT
+    `)
+
+    await this.pgConnection.raw(`
+      ALTER TABLE ${SHIPPING_WEBHOOK_BUFFER_TABLE}
+      ADD COLUMN IF NOT EXISTS internal_reference TEXT
     `)
 
     await this.pgConnection.raw(`
@@ -592,11 +628,19 @@ export class ShippingPersistenceRepository {
     `)
 
     await this.pgConnection.raw(`
+      CREATE INDEX IF NOT EXISTS idx_shipping_webhook_buffer_provider_order
+      ON ${SHIPPING_WEBHOOK_BUFFER_TABLE} (provider, provider_order_id)
+    `)
+
+    await this.pgConnection.raw(`
+      CREATE INDEX IF NOT EXISTS idx_shipping_webhook_buffer_internal_reference
+      ON ${SHIPPING_WEBHOOK_BUFFER_TABLE} (internal_reference)
+    `)
+
+    await this.pgConnection.raw(`
       CREATE INDEX IF NOT EXISTS idx_shipping_webhook_buffer_pending
       ON ${SHIPPING_WEBHOOK_BUFFER_TABLE} (processed_at, received_at)
     `)
-
-    this.schemaEnsured = true
   }
 
   async createShipment(
@@ -1139,10 +1183,12 @@ export class ShippingPersistenceRepository {
           provider_event_id,
           provider_shipment_id,
           provider_awb,
+          provider_order_id,
+          internal_reference,
           event_type,
           payload_sanitized
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT (provider, provider_event_id) DO NOTHING
         RETURNING *
       `,
@@ -1152,6 +1198,8 @@ export class ShippingPersistenceRepository {
         providerEventId,
         readNullableText(input.provider_shipment_id),
         readNullableText(input.provider_awb),
+        readNullableText(input.provider_order_id),
+        readNullableText(input.internal_reference),
         eventType,
         sanitizedPayload,
       ]
@@ -1361,15 +1409,24 @@ export class ShippingPersistenceRepository {
         UPDATE ${SHIPPING_SHIPMENTS_TABLE}
         SET status = ?, updated_at = NOW()
         WHERE id = ?
+          AND status = ?
         RETURNING *
       `,
-      [input.next_status, shipmentId]
+      [input.next_status, shipmentId, current.status]
     )
 
     const row = result.rows?.[0]
+    if (!row) {
+      const latest = await this.getShipmentById(shipmentId)
+      return {
+        updated: false,
+        shipment: latest,
+      }
+    }
+
     return {
-      updated: Boolean(row),
-      shipment: row ? mapShipmentRow(row) : current,
+      updated: true,
+      shipment: mapShipmentRow(row),
     }
   }
 
@@ -1701,8 +1758,11 @@ export class ShippingPersistenceRepository {
         provider: record.provider,
         provider_shipment_id: record.provider_shipment_id,
         provider_awb: record.provider_awb,
-        provider_order_id: readNullableText(record.payload_sanitized?.provider_order_id),
+        provider_order_id:
+          record.provider_order_id ??
+          readNullableText(record.payload_sanitized?.provider_order_id),
         internal_reference:
+          record.internal_reference ||
           readNullableText(record.payload_sanitized?.internal_reference) ||
           readNullableText(record.payload_sanitized?.order_id),
       })

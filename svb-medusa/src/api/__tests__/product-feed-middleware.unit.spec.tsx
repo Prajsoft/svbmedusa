@@ -84,4 +84,32 @@ describe("product-feed middleware query validation", () => {
       })
     )
   })
+
+  it("preserves raw body for Shiprocket webhooks and applies correlation middleware to shipping routes", () => {
+    const config = middlewaresConfig as any
+
+    const shiprocketWebhookRoute = (config.routes ?? []).find(
+      (route: any) =>
+        route.matcher === "/webhooks/shipping/shiprocket" &&
+        Array.isArray(route.methods) &&
+        route.methods.includes("POST")
+    )
+
+    expect(shiprocketWebhookRoute).toBeDefined()
+    expect(shiprocketWebhookRoute.bodyParser).toEqual(
+      expect.objectContaining({
+        preserveRawBody: true,
+      })
+    )
+
+    const correlationRoute = (config.routes ?? []).find(
+      (route: any) =>
+        route.matcher instanceof RegExp &&
+        route.matcher.test("/shipments/ship_1/label")
+    )
+
+    expect(correlationRoute).toBeDefined()
+    expect(Array.isArray(correlationRoute.middlewares)).toBe(true)
+    expect(correlationRoute.middlewares.length).toBeGreaterThan(0)
+  })
 })
