@@ -407,7 +407,7 @@ export class RazorpayContractProvider implements IPaymentProvider {
 
   getCapabilities(): ProviderCapabilities {
     return {
-      supportsRefunds: false,
+      supportsRefunds: true,
       supportsWebhooks: true,
       supportsManualCapture: true,
     }

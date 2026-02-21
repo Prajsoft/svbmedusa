@@ -14,7 +14,7 @@ Razorpay is the online payment provider for checkout cards/UPI/netbanking in thi
 - Order creation: one Razorpay order per Medusa payment session.
 - Authorization: server-side HMAC signature verification required.
 - Reconciliation: webhook-driven state reconciliation with dedupe.
-- Refunds: not implemented in v1 (`REFUND_NOT_IMPLEMENTED`, HTTP 501).
+- Refunds: supported for captured payments (stored as `razorpay_refund_id` and `refunded_at`).
 
 ## Architecture
 
@@ -139,7 +139,8 @@ Implemented behavior:
   - Cancels only unpaid sessions.
   - Paid sessions return `CANNOT_CANCEL_PAID_PAYMENT`.
 - `refundPayment`:
-  - v1 returns `REFUND_NOT_IMPLEMENTED` (HTTP 501).
+  - Calls `POST /v1/payments/:id/refund` for captured payments.
+  - Stores `razorpay_refund_id` and transitions internal status to `REFUNDED`.
 
 INR-only enforcement:
 
@@ -218,7 +219,6 @@ Common Razorpay error codes:
 - `RAZORPAY_RATE_LIMIT`: upstream 429 after retries.
 - `RAZORPAY_UPSTREAM_ERROR`: upstream 5xx/network failure.
 - `RAZORPAY_AMOUNT_IMMUTABLE`: amount changed for same session.
-- `REFUND_NOT_IMPLEMENTED`: v1 refund not supported.
 - `CANNOT_CANCEL_PAID_PAYMENT`: cancel attempted on paid session.
 
 Canonical pluggable adapter mapping (`src/modules/payment-razorpay/contract-provider.ts`):

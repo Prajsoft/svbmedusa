@@ -65,6 +65,16 @@ class CodPaymentProviderService extends AbstractPaymentProvider {
       : undefined
   }
 
+  private throwStateTransitionError(message: string): never {
+    const error = new Error(message) as Error & {
+      code: string
+      httpStatus: number
+    }
+    error.code = "STATE_TRANSITION_INVALID"
+    error.httpStatus = 409
+    throw error
+  }
+
   async initiatePayment(
     input: InitiatePaymentInput
   ): Promise<InitiatePaymentOutput> {
@@ -101,9 +111,26 @@ class CodPaymentProviderService extends AbstractPaymentProvider {
     const data = this.cloneData(input.data)
     const state = this.normalizeState(data)
 
-    if (state !== COD_STATE.CAPTURED && state !== COD_STATE.REFUNDED) {
-      data.cod_state = COD_STATE.AUTHORIZED
+    if (typeof data.cod_state === "string" && !state) {
+      this.throwStateTransitionError(
+        `Cannot authorize COD payment from unknown state '${data.cod_state}'.`
+      )
     }
+
+    if (state === COD_STATE.CANCELED) {
+      this.throwStateTransitionError(
+        "Cannot authorize COD payment after it has been canceled."
+      )
+    }
+
+    if (state === COD_STATE.CAPTURED || state === COD_STATE.REFUNDED) {
+      return {
+        status: PaymentSessionStatus.CAPTURED,
+        data,
+      }
+    }
+
+    data.cod_state = COD_STATE.AUTHORIZED
 
     if (typeof data.cod_reference !== "string") {
       data.cod_reference = `COD-${crypto.randomUUID()}`

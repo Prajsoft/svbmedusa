@@ -40,6 +40,45 @@ class PaymentProviderDefaultError extends Error {
   }
 }
 
+class HttpSecretConfigError extends Error {
+  code: string
+  reason: string
+
+  constructor(reason: string) {
+    super("HTTP_SECRET_CONFIG_INVALID")
+    this.name = "HttpSecretConfigError"
+    this.code = "HTTP_SECRET_CONFIG_INVALID"
+    this.reason = reason
+  }
+}
+
+function validateHttpSecrets(env: NodeJS.ProcessEnv): void {
+  if (readEnvText(env.NODE_ENV).toLowerCase() !== "production") {
+    return
+  }
+
+  const jwtSecret = readEnvText(env.JWT_SECRET)
+  const cookieSecret = readEnvText(env.COOKIE_SECRET)
+  const weakValues = new Set(["supersecret"])
+  const invalid: string[] = []
+
+  if (!jwtSecret || weakValues.has(jwtSecret.toLowerCase())) {
+    invalid.push("JWT_SECRET")
+  }
+
+  if (!cookieSecret || weakValues.has(cookieSecret.toLowerCase())) {
+    invalid.push("COOKIE_SECRET")
+  }
+
+  if (invalid.length) {
+    throw new HttpSecretConfigError(
+      `${invalid.join(
+        " and "
+      )} must be explicitly set to strong non-default values when NODE_ENV=production.`
+    )
+  }
+}
+
 function dedupe(values: string[]): string[] {
   return Array.from(new Set(values.filter(Boolean)))
 }
@@ -148,6 +187,22 @@ if (shouldLogWebhookSecurityDegradedOnBoot(process.env)) {
     reason:
       "ALLOW_UNSIGNED_WEBHOOKS=true accepts unverified shipping webhooks. Keep false in production.",
   })
+}
+
+try {
+  validateHttpSecrets(process.env)
+} catch (error) {
+  const reason =
+    error instanceof HttpSecretConfigError
+      ? error.reason
+      : "Unknown HTTP secret guardrail validation error."
+
+  console.error({
+    event: "HTTP_SECRET_CONFIG_INVALID",
+    reason,
+  })
+
+  throw error
 }
 
 const modules: Record<string, any> = {}

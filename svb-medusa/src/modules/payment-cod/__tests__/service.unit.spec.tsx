@@ -43,6 +43,46 @@ describe("COD payment provider", () => {
     expect(second.data).toEqual(first.data)
   })
 
+  it("does not move captured/refunded COD states back to authorized", async () => {
+    const captured = await provider.authorizePayment({
+      data: {
+        cod_state: "captured",
+        cod_reference: "COD-captured",
+      },
+    })
+
+    expect(captured.status).toBe(PaymentSessionStatus.CAPTURED)
+    expect(captured.data?.cod_state).toBe("captured")
+  })
+
+  it("blocks authorize from canceled state", async () => {
+    await expect(
+      provider.authorizePayment({
+        data: {
+          cod_state: "canceled",
+          cod_reference: "COD-canceled",
+        },
+      })
+    ).rejects.toMatchObject({
+      code: "STATE_TRANSITION_INVALID",
+      httpStatus: 409,
+    })
+  })
+
+  it("blocks authorize from unknown cod state", async () => {
+    await expect(
+      provider.authorizePayment({
+        data: {
+          cod_state: "failed",
+          cod_reference: "COD-unknown",
+        },
+      })
+    ).rejects.toMatchObject({
+      code: "STATE_TRANSITION_INVALID",
+      httpStatus: 409,
+    })
+  })
+
   it("captures an authorized COD payment", async () => {
     const captured = await provider.capturePayment({
       data: {

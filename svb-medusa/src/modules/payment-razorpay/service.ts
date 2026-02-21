@@ -93,6 +93,14 @@ type RazorpayPaymentResponse = {
   status?: string
 }
 
+type RazorpayRefundResponse = {
+  id?: string
+  payment_id?: string
+  amount?: number
+  currency?: string
+  status?: string
+}
+
 type RazorpayWebhookPaymentEntity = {
   id?: string
   order_id?: string
@@ -1394,12 +1402,68 @@ export default class RazorpayPaymentProviderService extends AbstractPaymentProvi
       razorpay_payment_status: readText(data.razorpay_payment_status).toLowerCase() || null,
       amount: toMinorAmount(input.amount) || null,
     })
-    this.throwProviderError({
-      code: "REFUND_NOT_IMPLEMENTED",
-      message: "Razorpay refunds are not implemented in v1.",
+
+    const currentStatus = readText(data.razorpay_payment_status).toLowerCase()
+    if (currentStatus === "refunded" && readText(data.razorpay_refund_id)) {
+      return { data }
+    }
+
+    const paymentId = readText(data.razorpay_payment_id)
+    const amount = toMinorAmount(input.amount || data.amount)
+
+    if (amount <= 0) {
+      this.throwProviderError({
+        code: "RAZORPAY_INVALID_AMOUNT",
+        message: "Refund amount must be a positive integer in paise.",
+        correlationId,
+        httpStatus: 400,
+      })
+    }
+
+    if (!paymentId) {
+      if (this.paymentsMode === "test") {
+        data.razorpay_refund_id = randomId("rfnd_test")
+        data.refunded_at = readText(data.refunded_at) || new Date().toISOString()
+        this.transitionProviderStatus({
+          data,
+          next_status: "refunded",
+          correlationId,
+          onInvalid: "noop",
+        })
+        return { data }
+      }
+
+      this.throwProviderError({
+        code: "RAZORPAY_PAYMENT_ID_REQUIRED",
+        message: "Cannot refund payment without a Razorpay payment id.",
+        correlationId,
+        httpStatus: 400,
+      })
+    }
+
+    const refunded = await this.requestWithRetry<RazorpayRefundResponse>({
+      path: `/v1/payments/${paymentId}/refund`,
+      method: "POST",
       correlationId,
-      httpStatus: 501,
+      body: {
+        amount,
+      },
     })
+
+    const refundId = readText(refunded.id)
+    if (refundId) {
+      data.razorpay_refund_id = refundId
+    }
+
+    data.refunded_at = readText(data.refunded_at) || new Date().toISOString()
+    this.transitionProviderStatus({
+      data,
+      next_status: "refunded",
+      correlationId,
+      onInvalid: "noop",
+    })
+
+    return { data }
   }
 
   async getPaymentStatus(input: GetPaymentStatusInput): Promise<GetPaymentStatusOutput> {
@@ -1683,7 +1747,7 @@ export default class RazorpayPaymentProviderService extends AbstractPaymentProvi
           {
             provider: "razorpay",
             event_type: eventType || "unknown",
-            event_id: eventId,
+            event_id: fallbackEventId || "unknown",
             matched: false,
             deduped: false,
             success: true,
@@ -1716,7 +1780,7 @@ export default class RazorpayPaymentProviderService extends AbstractPaymentProvi
           {
             provider: "razorpay",
             event_type: eventType || "unknown",
-            event_id: eventId,
+            event_id: fallbackEventId || "unknown",
             matched: false,
             deduped: false,
             success: true,
@@ -1731,7 +1795,7 @@ export default class RazorpayPaymentProviderService extends AbstractPaymentProvi
           payment_id: readText(paymentEntity.id),
         })
         this.log("info", "RAZORPAY_WEBHOOK_OK", correlationId, {
-          event_id: eventId,
+          event_id: fallbackEventId || null,
           event_type: eventType || null,
           action: PaymentActions.NOT_SUPPORTED,
           reason: "missing_session",

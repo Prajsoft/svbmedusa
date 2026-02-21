@@ -656,22 +656,41 @@ describe("Razorpay payment provider", () => {
     expect(getLoggedMessages(logger.info as jest.Mock)).toContain("RAZORPAY_CANCEL_CALLED")
   })
 
-  it("returns REFUND_NOT_IMPLEMENTED in v1 and logs refund call", async () => {
-    const { provider, logger } = makeProvider()
+  it("refunds captured Razorpay payment and stores refund details", async () => {
+    const client = {
+      orders: {
+        create: jest.fn(async () => ({ id: "order_refund_1" })),
+      },
+      payments: {
+        fetch: jest.fn(async () => ({})),
+        capture: jest.fn(async () => ({})),
+        refund: jest.fn(async () => ({
+          id: "rfnd_live_1",
+          payment_id: "pay_refund_1",
+          amount: 1000,
+          status: "processed",
+        })),
+      },
+    } as razorpayClientModule.RazorpayClient
 
-    await expect(
-      provider.refundPayment({
-        amount: 1000,
-        data: {
-          session_id: "ps_refund_1",
-          razorpay_order_id: "order_refund_1",
-          razorpay_payment_id: "pay_refund_1",
-          razorpay_payment_status: "captured",
-        },
-      } as any)
-    ).rejects.toMatchObject({
-      code: "REFUND_NOT_IMPLEMENTED",
-      httpStatus: 501,
+    const { provider, logger } = makeProvider({ client })
+    const refunded = await provider.refundPayment({
+      amount: 1000,
+      data: {
+        session_id: "ps_refund_1",
+        razorpay_order_id: "order_refund_1",
+        razorpay_payment_id: "pay_refund_1",
+        razorpay_payment_status: "captured",
+      },
+    } as any)
+
+    expect(refunded.data).toMatchObject({
+      razorpay_refund_id: "rfnd_live_1",
+      razorpay_payment_status: "refunded",
+      refunded_at: expect.any(String),
+    })
+    expect(client.payments.refund).toHaveBeenCalledWith("pay_refund_1", {
+      amount: 1000,
     })
     expect(getLoggedMessages(logger.info as jest.Mock)).toContain("RAZORPAY_REFUND_CALLED")
   })
@@ -865,6 +884,72 @@ describe("Razorpay payment provider", () => {
 
     expect(first.action).toBe(PaymentActions.SUCCESSFUL)
     expect(second.action).toBe(PaymentActions.NOT_SUPPORTED)
+  })
+
+  it("handles NOT_SUPPORTED webhook action without crashing when only fallback event id is available", async () => {
+    const { provider } = makeProvider({ webhookSecret: "webhook_secret_not_supported" })
+    const body = {
+      event: "order.paid",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_not_supported_1",
+            amount: 999,
+            notes: {
+              session_id: "ps_not_supported_1",
+            },
+          },
+        },
+      },
+    }
+    const rawBody = Buffer.from(JSON.stringify(body))
+    const signature = crypto
+      .createHmac("sha256", "webhook_secret_not_supported")
+      .update(rawBody)
+      .digest("hex")
+
+    const result = await provider.getWebhookActionAndData({
+      rawData: rawBody,
+      data: body,
+      headers: {
+        "x-razorpay-signature": signature,
+        "x-razorpay-event-id": "evt_not_supported_1",
+      },
+    } as any)
+
+    expect(result.action).toBe(PaymentActions.NOT_SUPPORTED)
+  })
+
+  it("handles missing session webhook branch using fallback event id", async () => {
+    const { provider } = makeProvider({ webhookSecret: "webhook_secret_missing_session" })
+    const body = {
+      event: "payment.captured",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_missing_session_1",
+            amount: 999,
+            notes: {},
+          },
+        },
+      },
+    }
+    const rawBody = Buffer.from(JSON.stringify(body))
+    const signature = crypto
+      .createHmac("sha256", "webhook_secret_missing_session")
+      .update(rawBody)
+      .digest("hex")
+
+    const result = await provider.getWebhookActionAndData({
+      rawData: rawBody,
+      data: body,
+      headers: {
+        "x-razorpay-signature": signature,
+        "x-razorpay-event-id": "evt_missing_session_1",
+      },
+    } as any)
+
+    expect(result.action).toBe(PaymentActions.NOT_SUPPORTED)
   })
 
   it("logs webhook failure and increments fail metric on invalid signature", async () => {

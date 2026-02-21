@@ -1828,4 +1828,29 @@ export class ShippingPersistenceRepository {
       scrubbed_count: Array.isArray(result.rows) ? result.rows.length : 0,
     }
   }
+
+  async getActiveShipmentByOrderId(
+    orderIdInput: string
+  ): Promise<ShippingShipmentRecord | null> {
+    await this.ensureSchema()
+
+    const orderId = readText(orderIdInput)
+    if (!orderId) {
+      return null
+    }
+
+    const result = await this.pgConnection.raw(
+      `
+        SELECT *
+        FROM ${SHIPPING_SHIPMENTS_TABLE}
+        WHERE order_id = ?
+          AND is_active = true
+        LIMIT 1
+      `,
+      [orderId]
+    )
+
+    const row = result.rows?.[0]
+    return row ? mapShipmentRow(row) : null
+  }
 }

@@ -151,4 +151,33 @@ describe("medusa-config Razorpay guardrails", () => {
       })
     )
   })
+
+  it("crashes boot in production when HTTP secrets are missing/default", () => {
+    process.env.NODE_ENV = "production"
+    process.env.JWT_SECRET = "supersecret"
+    delete process.env.COOKIE_SECRET
+    delete process.env.SHIPPING_PROVIDER_DEFAULT
+    delete process.env.CARRIER_ADAPTER
+
+    expect(() => bootMedusaConfig()).toThrow("HTTP_SECRET_CONFIG_INVALID")
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: "HTTP_SECRET_CONFIG_INVALID",
+      })
+    )
+  })
+
+  it("boots in production when strong HTTP secrets are configured", () => {
+    process.env.NODE_ENV = "production"
+    process.env.JWT_SECRET = "jwt_secret_prod_very_strong_1"
+    process.env.COOKIE_SECRET = "cookie_secret_prod_very_strong_1"
+    delete process.env.SHIPPING_PROVIDER_DEFAULT
+    delete process.env.CARRIER_ADAPTER
+    delete process.env.ENABLE_RAZORPAY
+    delete process.env.RAZORPAY_KEY_ID
+    delete process.env.RAZORPAY_KEY_SECRET
+    delete process.env.RAZORPAY_WEBHOOK_SECRET
+
+    expect(() => bootMedusaConfig()).not.toThrow()
+  })
 })

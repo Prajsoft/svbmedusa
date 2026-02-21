@@ -115,7 +115,7 @@ For v1, INR is enforced in backend payment validation.
 - Authorization failures: missing payload fields => `VALIDATION_ERROR`; signature mismatch => `SIGNATURE_INVALID`.
 - Signature verification logs: `RAZORPAY_SIGNATURE_VERIFICATION_OK` and `RAZORPAY_SIGNATURE_VERIFICATION_FAIL`.
 - `cancelPayment` marks unpaid sessions as canceled and rejects paid sessions with `CANNOT_CANCEL_PAID_PAYMENT`.
-- `refundPayment` is intentionally not available in v1 and returns `REFUND_NOT_IMPLEMENTED`.
+- `refundPayment` is supported for Razorpay captured payments and records `razorpay_refund_id` on success.
 - Observability events include: `RAZORPAY_ORDER_CREATED`, `RAZORPAY_CHECKOUT_INITIATED`, `RAZORPAY_SIGNATURE_OK/FAIL`, `RAZORPAY_WEBHOOK_OK/FAIL`.
 - Counters emitted: `razorpay.order_create.success|fail`, `razorpay.authorize.success|fail`, `razorpay.webhook.success|fail`.
 - Internal debug helper: `GET /admin/ops/debug/razorpay-payment?cart_id=...` or `?order_id=...` (admin auth required).
