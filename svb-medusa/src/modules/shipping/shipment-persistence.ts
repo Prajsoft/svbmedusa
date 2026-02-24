@@ -544,11 +544,6 @@ export class ShippingPersistenceRepository {
     `)
 
     await this.pgConnection.raw(`
-      ALTER TABLE ${SHIPPING_SHIPMENTS_TABLE}
-      ADD COLUMN IF NOT EXISTS provider_order_id TEXT
-    `)
-
-    await this.pgConnection.raw(`
       CREATE UNIQUE INDEX IF NOT EXISTS uq_shipping_shipments_active_order_provider
       ON ${SHIPPING_SHIPMENTS_TABLE} (order_id, provider)
       WHERE is_active = true
@@ -605,16 +600,6 @@ export class ShippingPersistenceRepository {
         retry_count INTEGER NOT NULL DEFAULT 0,
         UNIQUE (provider, provider_event_id)
       )
-    `)
-
-    await this.pgConnection.raw(`
-      ALTER TABLE ${SHIPPING_WEBHOOK_BUFFER_TABLE}
-      ADD COLUMN IF NOT EXISTS provider_order_id TEXT
-    `)
-
-    await this.pgConnection.raw(`
-      ALTER TABLE ${SHIPPING_WEBHOOK_BUFFER_TABLE}
-      ADD COLUMN IF NOT EXISTS internal_reference TEXT
     `)
 
     await this.pgConnection.raw(`
