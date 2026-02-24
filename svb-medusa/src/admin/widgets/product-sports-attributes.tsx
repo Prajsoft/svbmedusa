@@ -74,7 +74,7 @@ class ErrorBoundary extends Component<EBProps, EBState> {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function isKnownOption(value: string, options: readonly string[]): boolean {
+const isKnownOption = (value: string, options: readonly string[]): boolean => {
   return options.includes(value)
 }
 
@@ -87,7 +87,7 @@ interface MultiChipProps {
   disabled: boolean
 }
 
-function MultiChip({ options, values, onChange, disabled }: MultiChipProps) {
+const MultiChip = ({ options, values, onChange, disabled }: MultiChipProps) => {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
       {options.map((opt) => {
@@ -128,7 +128,7 @@ interface ColorChipsProps {
   disabled: boolean
 }
 
-function ColorChips({ values, onChange, disabled }: ColorChipsProps) {
+const ColorChips = ({ values, onChange, disabled }: ColorChipsProps) => {
   const customColors = values.filter((v) => !BALL_COLORS_SET.has(v))
   const [otherActive, setOtherActive] = useState(customColors.length > 0)
   const [otherText, setOtherText] = useState(customColors.join(", "))
@@ -230,14 +230,14 @@ interface SelectWithOtherProps {
   error?: string
 }
 
-function SelectWithOther({
+const SelectWithOther = ({
   options,
   value,
   onChange,
   placeholder,
   disabled,
   error,
-}: SelectWithOtherProps) {
+}: SelectWithOtherProps) => {
   const known = value === "" || isKnownOption(value, options)
   const displayValue = known ? value : "other"
   const [otherText, setOtherText] = useState(known ? "" : value)
@@ -305,14 +305,14 @@ interface SimpleSelectProps {
   error?: string
 }
 
-function SimpleSelect({
+const SimpleSelect = ({
   options,
   value,
   onChange,
   placeholder,
   disabled,
   error,
-}: SimpleSelectProps) {
+}: SimpleSelectProps) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
       <Select value={value} onValueChange={onChange} disabled={disabled}>
@@ -342,7 +342,7 @@ interface FieldRowProps {
   children: ReactNode
 }
 
-function FieldRow({ label, children }: FieldRowProps) {
+const FieldRow = ({ label, children }: FieldRowProps) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
       <Text size="small" weight="plus">
@@ -354,7 +354,7 @@ function FieldRow({ label, children }: FieldRowProps) {
 }
 
 // ── SportsAttributesWidget ────────────────────────────────────────────────────
-function SportsAttributesWidget({ data }: DetailWidgetProps<{ id: string }>) {
+const SportsAttributesWidget = ({ data }: DetailWidgetProps<{ id: string }>) => {
   const productId = data.id
 
   const [attrs, setAttrs] = useState<SportsAttributes>(DEFAULT_SPORTS_ATTRIBUTES)
@@ -754,7 +754,7 @@ function SportsAttributesWidget({ data }: DetailWidgetProps<{ id: string }>) {
 }
 
 // ── Default export ────────────────────────────────────────────────────────────
-function ProductSportsAttributesWidget(props: DetailWidgetProps<{ id: string }>) {
+const ProductSportsAttributesWidget = (props: DetailWidgetProps<{ id: string }>) => {
   return (
     <ErrorBoundary>
       <SportsAttributesWidget {...props} />
