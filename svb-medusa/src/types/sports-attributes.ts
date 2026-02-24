@@ -11,12 +11,27 @@ export enum Sport {
 // ─── Equipment Type Enum ─────────────────────────────────────────────────────
 
 /**
- * Equipment types within a sport. Ball is the only type in V1.
- * Add new values here (Bat, Gloves, Pads, Helmet, Bag) when expanding.
+ * Equipment types within a sport.
+ * Add new values here when expanding to new product categories.
  */
 export enum EquipmentType {
   Ball = "Ball",
+  Bat = "Bat",
+  Gloves = "Gloves",
+  Pads = "Pads",
+  Helmet = "Helmet",
+  Bag = "Bag",
 }
+
+/** Ordered list of equipment types for dropdowns. */
+export const EQUIPMENT_TYPES = [
+  EquipmentType.Ball,
+  EquipmentType.Bat,
+  EquipmentType.Gloves,
+  EquipmentType.Pads,
+  EquipmentType.Helmet,
+  EquipmentType.Bag,
+] as const
 
 // ─── Allowed Values (const arrays) ───────────────────────────────────────────
 // Defined as const arrays (not enums) so they serve double duty:
@@ -159,11 +174,19 @@ export interface BallAttributes {
 // ─── Main Interface ───────────────────────────────────────────────────────────
 
 /**
+ * Generic attributes for non-ball equipment types (Bat, Gloves, Pads, etc.).
+ * Only the discriminator is required; additional fields can be added per type later.
+ */
+export interface GenericEquipmentAttributes {
+  equipment_type: Exclude<EquipmentType, EquipmentType.Ball>
+}
+
+/** Discriminated union of all sport-specific attribute shapes. */
+export type SportSpecificAttributes = BallAttributes | GenericEquipmentAttributes
+
+/**
  * The complete sports_attributes structure stored as jsonb on the product table.
- *
- * `sport_specific` is currently BallAttributes only (V1).
- * When new equipment types are added, expand it to a discriminated union:
- *   sport_specific: BallAttributes | BatAttributes | GlovesAttributes | ...
+ * `sport_specific` is a discriminated union keyed on `equipment_type`.
  */
 export interface SportsAttributes {
   /** The sport this product belongs to. */
@@ -171,7 +194,7 @@ export interface SportsAttributes {
   /** Attributes common to all equipment types within the sport. */
   common: CommonAttributes
   /** Attributes specific to the equipment type (discriminated by equipment_type). */
-  sport_specific: BallAttributes
+  sport_specific: SportSpecificAttributes
 }
 
 // ─── Default / Empty State ────────────────────────────────────────────────────

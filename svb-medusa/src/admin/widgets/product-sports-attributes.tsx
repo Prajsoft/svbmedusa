@@ -28,12 +28,14 @@ import {
   BALL_TYPES,
   BEST_FOR_OPTIONS,
   DEFAULT_SPORTS_ATTRIBUTES,
+  EQUIPMENT_TYPES,
   EquipmentType,
   PLAYING_SURFACES,
   PROTECTION_LEVELS,
   SEAM_TYPES,
   SKILL_LEVELS,
   Sport,
+  type BallAttributes,
   type SportsAttributes,
 } from "../../types/sports-attributes"
 
@@ -464,10 +466,7 @@ const SportsAttributesWidget = ({ data }: DetailWidgetProps<{ id: string }>) => 
   )
 
   const updateBall = useCallback(
-    <K extends keyof SportsAttributes["sport_specific"]>(
-      field: K,
-      value: SportsAttributes["sport_specific"][K]
-    ) => {
+    <K extends keyof BallAttributes>(field: K, value: BallAttributes[K]) => {
       setAttrs((prev) => ({
         ...prev,
         sport_specific: { ...prev.sport_specific, [field]: value },
@@ -475,6 +474,24 @@ const SportsAttributesWidget = ({ data }: DetailWidgetProps<{ id: string }>) => 
     },
     []
   )
+
+  const handleEquipmentTypeChange = useCallback((newType: string) => {
+    setAttrs((prev) => ({
+      ...prev,
+      sport_specific:
+        newType === EquipmentType.Ball
+          ? {
+              equipment_type: EquipmentType.Ball,
+              ball_type: "",
+              ball_grade: [],
+              seam_type: "",
+              ball_color: [],
+              ball_size: "",
+              overs_durability: "",
+            }
+          : { equipment_type: newType as EquipmentType },
+    }))
+  }, [])
 
   // ── Save ────────────────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
@@ -590,13 +607,28 @@ const SportsAttributesWidget = ({ data }: DetailWidgetProps<{ id: string }>) => 
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
 
-          {/* Sport / Equipment (read-only) */}
+          {/* Sport / Equipment Type */}
           <div style={gridStyle}>
             <FieldRow label="Sport">
               <Badge color="blue">{Sport.Cricket}</Badge>
             </FieldRow>
             <FieldRow label="Equipment Type">
-              <Badge color="blue">{EquipmentType.Ball}</Badge>
+              <Select
+                value={attrs.sport_specific.equipment_type}
+                onValueChange={handleEquipmentTypeChange}
+                disabled={saving}
+              >
+                <Select.Trigger>
+                  <Select.Value placeholder="Select type..." />
+                </Select.Trigger>
+                <Select.Content>
+                  {EQUIPMENT_TYPES.map((t) => (
+                    <Select.Item key={t} value={t}>
+                      {t}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select>
             </FieldRow>
           </div>
 
@@ -699,74 +731,79 @@ const SportsAttributesWidget = ({ data }: DetailWidgetProps<{ id: string }>) => 
             </div>
           </div>
 
-          {/* ── Ball Attributes ───────────────────────────────────────────── */}
-          <div>
-            <Heading level="h3" style={{ marginBottom: "14px" }}>
-              Ball Attributes
-            </Heading>
-            <div style={gridStyle}>
+          {/* ── Ball Attributes (only when equipment type is Ball) ─────── */}
+          {attrs.sport_specific.equipment_type === EquipmentType.Ball && (() => {
+            const ball = attrs.sport_specific as BallAttributes
+            return (
+              <div>
+                <Heading level="h3" style={{ marginBottom: "14px" }}>
+                  Ball Attributes
+                </Heading>
+                <div style={gridStyle}>
 
-              <FieldRow label="Ball Type">
-                <SelectWithOther
-                  options={BALL_TYPES}
-                  value={attrs.sport_specific.ball_type}
-                  onChange={(v) => updateBall("ball_type", v)}
-                  placeholder="Select type..."
-                  disabled={saving}
-                  error={fieldErrors["sport_specific.ball_type"]}
-                />
-              </FieldRow>
+                  <FieldRow label="Ball Type">
+                    <SelectWithOther
+                      options={BALL_TYPES}
+                      value={ball.ball_type}
+                      onChange={(v) => updateBall("ball_type", v)}
+                      placeholder="Select type..."
+                      disabled={saving}
+                      error={fieldErrors["sport_specific.ball_type"]}
+                    />
+                  </FieldRow>
 
-              <FieldRow label="Ball Grade">
-                <MultiCheckbox
-                  options={BALL_GRADES}
-                  values={attrs.sport_specific.ball_grade}
-                  onChange={(v) => updateBall("ball_grade", v)}
-                  disabled={saving}
-                />
-              </FieldRow>
+                  <FieldRow label="Ball Grade">
+                    <MultiCheckbox
+                      options={BALL_GRADES}
+                      values={ball.ball_grade}
+                      onChange={(v) => updateBall("ball_grade", v)}
+                      disabled={saving}
+                    />
+                  </FieldRow>
 
-              <FieldRow label="Seam Type">
-                <SelectWithOther
-                  options={SEAM_TYPES}
-                  value={attrs.sport_specific.seam_type}
-                  onChange={(v) => updateBall("seam_type", v)}
-                  placeholder="Select seam type..."
-                  disabled={saving}
-                  error={fieldErrors["sport_specific.seam_type"]}
-                />
-              </FieldRow>
+                  <FieldRow label="Seam Type">
+                    <SelectWithOther
+                      options={SEAM_TYPES}
+                      value={ball.seam_type}
+                      onChange={(v) => updateBall("seam_type", v)}
+                      placeholder="Select seam type..."
+                      disabled={saving}
+                      error={fieldErrors["sport_specific.seam_type"]}
+                    />
+                  </FieldRow>
 
-              <FieldRow label="Ball Size">
-                <SelectWithOther
-                  options={BALL_SIZES}
-                  value={attrs.sport_specific.ball_size}
-                  onChange={(v) => updateBall("ball_size", v)}
-                  placeholder="Select size..."
-                  disabled={saving}
-                  error={fieldErrors["sport_specific.ball_size"]}
-                />
-              </FieldRow>
+                  <FieldRow label="Ball Size">
+                    <SelectWithOther
+                      options={BALL_SIZES}
+                      value={ball.ball_size}
+                      onChange={(v) => updateBall("ball_size", v)}
+                      placeholder="Select size..."
+                      disabled={saving}
+                      error={fieldErrors["sport_specific.ball_size"]}
+                    />
+                  </FieldRow>
 
-              <FieldRow label="Ball Color">
-                <ColorChips
-                  values={attrs.sport_specific.ball_color}
-                  onChange={(v) => updateBall("ball_color", v)}
-                  disabled={saving}
-                />
-              </FieldRow>
+                  <FieldRow label="Ball Color">
+                    <ColorChips
+                      values={ball.ball_color}
+                      onChange={(v) => updateBall("ball_color", v)}
+                      disabled={saving}
+                    />
+                  </FieldRow>
 
-              <FieldRow label="Overs Durability">
-                <Input
-                  placeholder="e.g. 30–35 overs, 50+ overs"
-                  value={attrs.sport_specific.overs_durability}
-                  onChange={(e) => updateBall("overs_durability", e.target.value)}
-                  disabled={saving}
-                />
-              </FieldRow>
+                  <FieldRow label="Overs Durability">
+                    <Input
+                      placeholder="e.g. 30–35 overs, 50+ overs"
+                      value={ball.overs_durability}
+                      onChange={(e) => updateBall("overs_durability", e.target.value)}
+                      disabled={saving}
+                    />
+                  </FieldRow>
 
-            </div>
-          </div>
+                </div>
+              </div>
+            )
+          })()}
 
         </div>
       )}

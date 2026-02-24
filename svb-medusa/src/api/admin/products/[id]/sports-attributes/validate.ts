@@ -6,7 +6,11 @@ import {
   BEST_FOR_OPTIONS,
   PROTECTION_LEVELS,
   BALL_GRADES,
+  EquipmentType,
+  EQUIPMENT_TYPES,
 } from "../../../../../types/sports-attributes"
+
+const ALLOWED_EQUIPMENT_TYPES = new Set<string>(EQUIPMENT_TYPES)
 
 export type ValidationResult =
   | { valid: true }
@@ -144,64 +148,68 @@ export function validateSportsAttributes(body: unknown): ValidationResult {
     const s = ss as Record<string, unknown>
 
     // equipment_type
-    if (s.equipment_type !== "Ball") {
-      errors["sport_specific.equipment_type"] = "Must be 'Ball'"
+    if (!ALLOWED_EQUIPMENT_TYPES.has(s.equipment_type as string)) {
+      errors["sport_specific.equipment_type"] =
+        `Must be one of: ${EQUIPMENT_TYPES.join(", ")}`
     }
 
-    // ball_type
-    if (typeof s.ball_type !== "string") {
-      errors["sport_specific.ball_type"] = "Must be a string"
-    } else if (s.ball_type.length > 100) {
-      errors["sport_specific.ball_type"] = "Must be a string under 100 characters"
-    }
-
-    // ball_grade
-    if (!Array.isArray(s.ball_grade)) {
-      errors["sport_specific.ball_grade"] = "Must be an array"
-    } else {
-      const badItems = (s.ball_grade as unknown[]).filter(
-        (v) => !BALL_GRADES.includes(v as (typeof BALL_GRADES)[number])
-      )
-      if (badItems.length > 0) {
-        errors["sport_specific.ball_grade"] =
-          `Invalid value: must be one of ${BALL_GRADES.join(", ")}`
+    // Ball-specific fields — only validated when equipment_type is Ball
+    if (s.equipment_type === EquipmentType.Ball) {
+      // ball_type
+      if (typeof s.ball_type !== "string") {
+        errors["sport_specific.ball_type"] = "Must be a string"
+      } else if ((s.ball_type as string).length > 100) {
+        errors["sport_specific.ball_type"] = "Must be a string under 100 characters"
       }
-    }
 
-    // seam_type
-    if (typeof s.seam_type !== "string") {
-      errors["sport_specific.seam_type"] = "Must be a string"
-    } else if (s.seam_type.length > 100) {
-      errors["sport_specific.seam_type"] = "Must be a string under 100 characters"
-    }
-
-    // ball_color
-    if (!Array.isArray(s.ball_color)) {
-      errors["sport_specific.ball_color"] = "Must be an array"
-    } else if ((s.ball_color as unknown[]).length > 10) {
-      errors["sport_specific.ball_color"] = "Must have 10 or fewer items"
-    } else {
-      const badItems = (s.ball_color as unknown[]).filter(
-        (v) => typeof v !== "string" || (v as string).length > 50
-      )
-      if (badItems.length > 0) {
-        errors["sport_specific.ball_color"] =
-          "Each color must be a string under 50 characters"
+      // ball_grade
+      if (!Array.isArray(s.ball_grade)) {
+        errors["sport_specific.ball_grade"] = "Must be an array"
+      } else {
+        const badItems = (s.ball_grade as unknown[]).filter(
+          (v) => !BALL_GRADES.includes(v as (typeof BALL_GRADES)[number])
+        )
+        if (badItems.length > 0) {
+          errors["sport_specific.ball_grade"] =
+            `Invalid value: must be one of ${BALL_GRADES.join(", ")}`
+        }
       }
-    }
 
-    // ball_size
-    if (typeof s.ball_size !== "string") {
-      errors["sport_specific.ball_size"] = "Must be a string"
-    } else if (s.ball_size.length > 100) {
-      errors["sport_specific.ball_size"] = "Must be a string under 100 characters"
-    }
+      // seam_type
+      if (typeof s.seam_type !== "string") {
+        errors["sport_specific.seam_type"] = "Must be a string"
+      } else if ((s.seam_type as string).length > 100) {
+        errors["sport_specific.seam_type"] = "Must be a string under 100 characters"
+      }
 
-    // overs_durability
-    if (typeof s.overs_durability !== "string") {
-      errors["sport_specific.overs_durability"] = "Must be a string"
-    } else if (s.overs_durability.length > 200) {
-      errors["sport_specific.overs_durability"] = "Must be a string under 200 characters"
+      // ball_color
+      if (!Array.isArray(s.ball_color)) {
+        errors["sport_specific.ball_color"] = "Must be an array"
+      } else if ((s.ball_color as unknown[]).length > 10) {
+        errors["sport_specific.ball_color"] = "Must have 10 or fewer items"
+      } else {
+        const badItems = (s.ball_color as unknown[]).filter(
+          (v) => typeof v !== "string" || (v as string).length > 50
+        )
+        if (badItems.length > 0) {
+          errors["sport_specific.ball_color"] =
+            "Each color must be a string under 50 characters"
+        }
+      }
+
+      // ball_size
+      if (typeof s.ball_size !== "string") {
+        errors["sport_specific.ball_size"] = "Must be a string"
+      } else if ((s.ball_size as string).length > 100) {
+        errors["sport_specific.ball_size"] = "Must be a string under 100 characters"
+      }
+
+      // overs_durability
+      if (typeof s.overs_durability !== "string") {
+        errors["sport_specific.overs_durability"] = "Must be a string"
+      } else if ((s.overs_durability as string).length > 200) {
+        errors["sport_specific.overs_durability"] = "Must be a string under 200 characters"
+      }
     }
   }
 
