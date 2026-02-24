@@ -5,6 +5,7 @@ import {
   PLAYING_SURFACES,
   BEST_FOR_OPTIONS,
   PROTECTION_LEVELS,
+  BALL_GRADES,
 } from "../../../../../types/sports-attributes"
 
 export type ValidationResult =
@@ -66,14 +67,16 @@ export function validateSportsAttributes(body: unknown): ValidationResult {
     }
 
     // activity_intensity
-    if (
-      c.activity_intensity !== "" &&
-      !ACTIVITY_INTENSITIES.includes(
-        c.activity_intensity as (typeof ACTIVITY_INTENSITIES)[number]
+    if (!Array.isArray(c.activity_intensity)) {
+      errors["common.activity_intensity"] = "Must be an array"
+    } else {
+      const badItems = (c.activity_intensity as unknown[]).filter(
+        (v) => !ACTIVITY_INTENSITIES.includes(v as (typeof ACTIVITY_INTENSITIES)[number])
       )
-    ) {
-      errors["common.activity_intensity"] =
-        `Invalid value: must be one of ${ACTIVITY_INTENSITIES.join(", ")}`
+      if (badItems.length > 0) {
+        errors["common.activity_intensity"] =
+          `Invalid value: must be one of ${ACTIVITY_INTENSITIES.join(", ")}`
+      }
     }
 
     // playing_surface
@@ -97,12 +100,16 @@ export function validateSportsAttributes(body: unknown): ValidationResult {
     }
 
     // best_for
-    if (
-      c.best_for !== "" &&
-      !BEST_FOR_OPTIONS.includes(c.best_for as (typeof BEST_FOR_OPTIONS)[number])
-    ) {
-      errors["common.best_for"] =
-        `Invalid value: must be one of ${BEST_FOR_OPTIONS.join(", ")}`
+    if (!Array.isArray(c.best_for)) {
+      errors["common.best_for"] = "Must be an array"
+    } else {
+      const badItems = (c.best_for as unknown[]).filter(
+        (v) => !BEST_FOR_OPTIONS.includes(v as (typeof BEST_FOR_OPTIONS)[number])
+      )
+      if (badItems.length > 0) {
+        errors["common.best_for"] =
+          `Invalid value: must be one of ${BEST_FOR_OPTIONS.join(", ")}`
+      }
     }
 
     // in_box_includes
@@ -149,10 +156,16 @@ export function validateSportsAttributes(body: unknown): ValidationResult {
     }
 
     // ball_grade
-    if (typeof s.ball_grade !== "string") {
-      errors["sport_specific.ball_grade"] = "Must be a string"
-    } else if (s.ball_grade.length > 100) {
-      errors["sport_specific.ball_grade"] = "Must be a string under 100 characters"
+    if (!Array.isArray(s.ball_grade)) {
+      errors["sport_specific.ball_grade"] = "Must be an array"
+    } else {
+      const badItems = (s.ball_grade as unknown[]).filter(
+        (v) => !BALL_GRADES.includes(v as (typeof BALL_GRADES)[number])
+      )
+      if (badItems.length > 0) {
+        errors["sport_specific.ball_grade"] =
+          `Invalid value: must be one of ${BALL_GRADES.join(", ")}`
+      }
     }
 
     // seam_type

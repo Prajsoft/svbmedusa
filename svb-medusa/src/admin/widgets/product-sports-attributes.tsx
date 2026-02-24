@@ -626,24 +626,20 @@ const SportsAttributesWidget = ({ data }: DetailWidgetProps<{ id: string }>) => 
               </FieldRow>
 
               <FieldRow label="Activity Intensity">
-                <SimpleSelect
+                <MultiCheckbox
                   options={ACTIVITY_INTENSITIES}
-                  value={attrs.common.activity_intensity}
+                  values={attrs.common.activity_intensity}
                   onChange={(v) => updateCommon("activity_intensity", v)}
-                  placeholder="Select intensity..."
                   disabled={saving}
-                  error={fieldErrors["common.activity_intensity"]}
                 />
               </FieldRow>
 
               <FieldRow label="Best For">
-                <SimpleSelect
+                <MultiCheckbox
                   options={BEST_FOR_OPTIONS}
-                  value={attrs.common.best_for}
+                  values={attrs.common.best_for}
                   onChange={(v) => updateCommon("best_for", v)}
-                  placeholder="Select audience..."
                   disabled={saving}
-                  error={fieldErrors["common.best_for"]}
                 />
               </FieldRow>
 
@@ -722,13 +718,11 @@ const SportsAttributesWidget = ({ data }: DetailWidgetProps<{ id: string }>) => 
               </FieldRow>
 
               <FieldRow label="Ball Grade">
-                <SelectWithOther
+                <MultiCheckbox
                   options={BALL_GRADES}
-                  value={attrs.sport_specific.ball_grade}
+                  values={attrs.sport_specific.ball_grade}
                   onChange={(v) => updateBall("ball_grade", v)}
-                  placeholder="Select grade..."
                   disabled={saving}
-                  error={fieldErrors["sport_specific.ball_grade"]}
                 />
               </FieldRow>
 

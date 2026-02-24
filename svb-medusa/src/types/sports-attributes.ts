@@ -113,14 +113,14 @@ export interface CommonAttributes {
   skill_level: string[]
   /** Multi-select. Values from AGE_GROUPS, or custom string via "Other". */
   age_group: string[]
-  /** Single select from ACTIVITY_INTENSITIES. Empty string if not set. */
-  activity_intensity: string
+  /** Multi-select. Values from ACTIVITY_INTENSITIES. */
+  activity_intensity: string[]
   /** Multi-select. Values from PLAYING_SURFACES, or custom string via "Other". */
   playing_surface: string[]
   /** Free text. E.g. "MRF Approved", "SG Certified". */
   certification: string
-  /** Single select from BEST_FOR_OPTIONS. Empty string if not set. */
-  best_for: string
+  /** Multi-select. Values from BEST_FOR_OPTIONS. */
+  best_for: string[]
   /** Free text. E.g. "Ball, Kit Bag, Instruction Booklet". */
   in_box_includes: string
   /** Boolean toggle. True if the product can be customised (embroidery, print, etc.). */
@@ -144,8 +144,8 @@ export interface BallAttributes {
   equipment_type: EquipmentType.Ball
   /** Predefined from BALL_TYPES or free text via "Other (specify)". */
   ball_type: string
-  /** Predefined from BALL_GRADES or free text via "Other (specify)". */
-  ball_grade: string
+  /** Multi-select. Values from BALL_GRADES. */
+  ball_grade: string[]
   /** Predefined from SEAM_TYPES or free text via "Other (specify)". */
   seam_type: string
   /** Multi-select. Values from BALL_COLORS or free text via "Other (specify)". */
@@ -186,10 +186,10 @@ export const DEFAULT_SPORTS_ATTRIBUTES: SportsAttributes = {
   common: {
     skill_level: [],
     age_group: [],
-    activity_intensity: "",
+    activity_intensity: [],
     playing_surface: [],
     certification: "",
-    best_for: "",
+    best_for: [],
     in_box_includes: "",
     customization_available: false,
     protection_level: "",
@@ -197,7 +197,7 @@ export const DEFAULT_SPORTS_ATTRIBUTES: SportsAttributes = {
   sport_specific: {
     equipment_type: EquipmentType.Ball,
     ball_type: "",
-    ball_grade: "",
+    ball_grade: [],
     seam_type: "",
     ball_color: [],
     ball_size: "",
