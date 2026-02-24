@@ -8,9 +8,6 @@ import {
 } from "@medusajs/framework/http"
 import { z } from "zod"
 import {
-  assertValidSku,
-} from "../modules/catalog/validate-sku"
-import {
   validateCartLogistics,
 } from "../modules/catalog/validate-logistics"
 import {
@@ -34,14 +31,6 @@ import {
 } from "../modules/logging/correlation"
 import { logEvent } from "../modules/logging/log-event"
 import { toAppError } from "../modules/observability/errors"
-
-type VariantLike = {
-  sku?: unknown
-}
-
-type ProductLike = {
-  variants?: VariantLike[]
-}
 
 const productFeedQuerySchema = z.object({
   currency_code: z.string().min(1, "currency_code is required"),
@@ -226,53 +215,6 @@ export function correlationIdMiddleware(
 
     next()
   })
-}
-
-export function validateVariantCreateBody(body: VariantLike): void {
-  const sku = typeof body?.sku === "string" ? body.sku : ""
-  assertValidSku(sku)
-}
-
-export function validateVariantUpdateBody(body: VariantLike): void {
-  if (body?.sku === undefined) {
-    return
-  }
-
-  const sku = typeof body.sku === "string" ? body.sku : ""
-  assertValidSku(sku)
-}
-
-export function validateProductCreateBody(body: ProductLike): void {
-  const variants = Array.isArray(body?.variants) ? body.variants : []
-
-  for (const variant of variants) {
-    validateVariantCreateBody(variant)
-  }
-}
-
-export function validateProductUpdateBody(body: ProductLike): void {
-  const variants = Array.isArray(body?.variants) ? body.variants : []
-
-  for (const variant of variants) {
-    validateVariantUpdateBody(variant)
-  }
-}
-
-function makeSkuValidationMiddleware(
-  validator: (body: Record<string, unknown>) => void
-) {
-  return (
-    req: MedusaRequest,
-    res: MedusaResponse,
-    next: MedusaNextFunction
-  ): void => {
-    try {
-      validator((req.body as Record<string, unknown>) ?? {})
-      next()
-    } catch (error) {
-      sendApiErrorEnvelope(req, res, error)
-    }
-  }
 }
 
 export function makeInventoryValidationMiddleware(
@@ -483,26 +425,6 @@ export default defineMiddlewares({
       methods: ["GET"],
       matcher: "/product-feed",
       middlewares: [validateAndTransformQuery(productFeedQuerySchema, {})],
-    },
-    {
-      methods: ["POST"],
-      matcher: "/admin/products",
-      middlewares: [makeSkuValidationMiddleware(validateProductCreateBody)],
-    },
-    {
-      methods: ["POST"],
-      matcher: "/admin/products/:id",
-      middlewares: [makeSkuValidationMiddleware(validateProductUpdateBody)],
-    },
-    {
-      methods: ["POST"],
-      matcher: "/admin/products/:id/variants",
-      middlewares: [makeSkuValidationMiddleware(validateVariantCreateBody)],
-    },
-    {
-      methods: ["POST"],
-      matcher: "/admin/products/:id/variants/:variant_id",
-      middlewares: [makeSkuValidationMiddleware(validateVariantUpdateBody)],
     },
     {
       methods: ["POST"],
