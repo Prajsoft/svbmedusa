@@ -1,7 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import type { SportsAttributes } from "../../../../../types/sports-attributes"
 import { validateSportsAttributes } from "./validate"
+import { setSportsAttributesWorkflow } from "../../../../../workflows/set-sports-attributes"
 
 // ── GET /admin/products/:id/sports-attributes ─────────────────────────────────
 
@@ -50,34 +50,21 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       return
     }
 
-    const pgConnection = req.scope.resolve(ContainerRegistrationKeys.PG_CONNECTION)
-
-    // Check product exists
-    const product = await pgConnection("product")
-      .where("id", id)
-      .whereNull("deleted_at")
-      .select("id")
-      .first()
-
-    if (!product) {
-      res.status(404).json({ error: "Product not found" })
-      return
-    }
-
-    // Write sports_attributes
-    await pgConnection("product")
-      .where("id", id)
-      .update({
-        sports_attributes: JSON.stringify(body),
-        updated_at: new Date(),
-      })
+    const { result } = await setSportsAttributesWorkflow(req.scope).run({
+      input: { product_id: id, sports_attributes: body },
+    })
 
     res.status(200).json({
       success: true,
-      sports_attributes: body as SportsAttributes,
+      sports_attributes: result.sports_attributes,
     })
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error))
+    // The workflow step throws when the product is not found
+    if (err.message.includes("not found")) {
+      res.status(404).json({ error: "Product not found" })
+      return
+    }
     res.status(500).json({
       error: "Internal server error",
       details: err.message,

@@ -1,6 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { validateSportsAttributes } from "../../[id]/sports-attributes/validate"
+import { batchSetSportsAttributesWorkflow } from "../../../../../workflows/set-sports-attributes"
 
 // ── Limits ────────────────────────────────────────────────────────────────────
 const MAX_BATCH_SIZE = 200
@@ -98,50 +98,14 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       sports_attributes: unknown
     }>
 
-    const productIds = validUpdates.map((u) => u.product_id)
-
-    // ── Resolve which product_ids actually exist ──────────────────────────────
-    const pgConnection = req.scope.resolve(ContainerRegistrationKeys.PG_CONNECTION)
-
-    const existingRows = await pgConnection("product")
-      .whereIn("id", productIds)
-      .whereNull("deleted_at")
-      .select("id")
-
-    const existingSet = new Set(existingRows.map((r: { id: string }) => r.id))
-    const notFound = productIds.filter((id) => !existingSet.has(id))
-
-    // Filter down to only products that exist
-    const toUpdate = validUpdates.filter((u) => existingSet.has(u.product_id))
-
-    if (toUpdate.length === 0) {
-      res.status(200).json({
-        updated: 0,
-        not_found: notFound,
-      })
-      return
-    }
-
-    // ── Bulk update inside a transaction ─────────────────────────────────────
-    // Each product gets its own UPDATE — knex doesn't support multi-row CASE
-    // updates portably, and N individual UPDATEs inside a single transaction
-    // are committed atomically with one round-trip to the server.
-    const now = new Date()
-
-    await pgConnection.transaction(async (trx) => {
-      await Promise.all(
-        toUpdate.map((u) =>
-          trx("product").where("id", u.product_id).update({
-            sports_attributes: JSON.stringify(u.sports_attributes),
-            updated_at: now,
-          })
-        )
-      )
+    // ── Execute workflow (handles existence check, transaction, compensation) ─
+    const { result } = await batchSetSportsAttributesWorkflow(req.scope).run({
+      input: { updates: validUpdates },
     })
 
     res.status(200).json({
-      updated: toUpdate.length,
-      not_found: notFound,
+      updated: result.updated,
+      not_found: result.not_found,
     })
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error))
