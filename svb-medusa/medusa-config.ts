@@ -135,6 +135,9 @@ const backendUrl = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
 
 // Redis module config (production only — optional for dev)
 const redisUrl = process.env.REDIS_URL
+const shiprocketRequested =
+  Boolean(readEnvText(process.env.SHIPROCKET_SELLER_EMAIL)) ||
+  Boolean(readEnvText(process.env.SHIPROCKET_TOKEN))
 const razorpayRequested =
   readEnvBool(process.env.ENABLE_RAZORPAY) ||
   Boolean(readEnvText(process.env.RAZORPAY_KEY_ID)) ||
@@ -266,6 +269,20 @@ try {
 
 modules[OBSERVABILITY_MODULE] = {
   resolve: "./src/modules/observability",
+}
+
+if (shiprocketRequested) {
+  modules[Modules.FULFILLMENT] = {
+    resolve: "@medusajs/fulfillment",
+    options: {
+      providers: [
+        {
+          resolve: "./src/modules/fulfillment-shiprocket",
+          id: "shiprocket",
+        },
+      ],
+    },
+  }
 }
 
 modules[Modules.PAYMENT] = {
