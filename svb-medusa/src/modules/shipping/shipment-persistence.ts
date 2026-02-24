@@ -517,6 +517,22 @@ export class ShippingPersistenceRepository {
       return
     }
 
+    // If the primary table already exists, all DDL from a prior successful
+    // run is in place. Skip re-running DDL — this avoids "must be owner of
+    // table" errors when the app DB user is not the table owner (e.g. local
+    // dev where a superuser created the tables in a previous session).
+    const existsResult = await this.pgConnection.raw(
+      `SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_schema = current_schema()
+        AND table_name = $1
+      ) AS "exists"`,
+      [SHIPPING_SHIPMENTS_TABLE]
+    )
+    if (existsResult.rows?.[0]?.exists === true) {
+      return
+    }
+
     await this.pgConnection.raw(`
       CREATE TABLE IF NOT EXISTS ${SHIPPING_SHIPMENTS_TABLE} (
         id TEXT PRIMARY KEY,

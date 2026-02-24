@@ -533,6 +533,21 @@ export default class RazorpayPaymentProviderService extends AbstractPaymentProvi
       })
     }
 
+    // If the table already exists, skip all DDL. Avoids "must be owner of
+    // table" errors when the app DB user is not the table owner.
+    const existsResult = await this.pgConnection.raw(
+      `SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_schema = current_schema()
+        AND table_name = $1
+      ) AS "exists"`,
+      [SESSION_ORDER_TABLE]
+    )
+    if (existsResult.rows?.[0]?.exists === true) {
+      this.tablesEnsured = true
+      return
+    }
+
     await this.pgConnection.raw(`
       CREATE TABLE IF NOT EXISTS ${SESSION_ORDER_TABLE} (
         payment_session_id TEXT PRIMARY KEY,
