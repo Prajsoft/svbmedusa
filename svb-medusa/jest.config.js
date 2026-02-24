@@ -7,7 +7,8 @@ module.exports = {
       "@swc/jest",
       {
         jsc: {
-          parser: { syntax: "typescript", decorators: true },
+          parser: { syntax: "typescript", decorators: true, tsx: true },
+          transform: { react: { runtime: "automatic" } },
         },
       },
     ],

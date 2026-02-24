@@ -46,13 +46,13 @@ function readText(value: unknown): string {
 }
 
 function getCorrelationId(req: MedusaRequest): string {
-  const existing = readText((req as Record<string, unknown>).correlation_id)
+  const existing = readText((req as unknown as Record<string, unknown>).correlation_id)
   if (existing) {
     return existing
   }
 
   const resolved = extractCorrelationIdFromRequest(req as any) || crypto.randomUUID()
-  ;(req as Record<string, unknown>).correlation_id = resolved
+  ;(req as unknown as Record<string, unknown>).correlation_id = resolved
   return resolved
 }
 

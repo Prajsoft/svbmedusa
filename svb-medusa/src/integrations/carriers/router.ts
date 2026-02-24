@@ -703,6 +703,7 @@ export class ShippingProviderRouter {
 
     if (
       cancelled.cancelled &&
+      "updateShipmentStatusMonotonic" in this.shipmentRepository &&
       typeof this.shipmentRepository.updateShipmentStatusMonotonic === "function"
     ) {
       await this.shipmentRepository.updateShipmentStatusMonotonic({

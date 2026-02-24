@@ -669,7 +669,7 @@ export default class RazorpayPaymentProviderService extends AbstractPaymentProvi
           readText(error.sanitized_upstream.code) ||
           `HTTP ${upstreamStatus}`
 
-        let code = PaymentErrorCode.RAZORPAY_UPSTREAM_ERROR
+        let code: PaymentErrorCode = PaymentErrorCode.RAZORPAY_UPSTREAM_ERROR
         let httpStatus = 502
         if (upstreamStatus === 401 || upstreamStatus === 403) {
           code = PaymentErrorCode.RAZORPAY_AUTH_FAILED

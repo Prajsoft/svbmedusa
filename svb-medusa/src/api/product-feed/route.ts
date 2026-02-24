@@ -77,7 +77,7 @@ function ensureFeedToken(token: string): void {
 }
 
 function readRequestId(req: MedusaRequest): string {
-  const reqAny = req as Record<string, unknown>
+  const reqAny = req as unknown as Record<string, unknown>
   const requestId =
     readText(reqAny.request_id) ||
     readText(reqAny.requestId) ||

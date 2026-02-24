@@ -33,11 +33,13 @@ export default async function seedTaxData({ container }: ExecArgs) {
   const indiaTaxRegion = taxRegions[0]
   logger.info(`Found tax region: ${indiaTaxRegion.id}`)
 
-  // Check if a default GST rate already exists
-  const existingRates = await taxModuleService.listTaxRates({
+  // Check if a default GST rate already exists.
+  // FilterableTaxRateProps does not include is_default, so we list all rates
+  // for the region and check the flag in code.
+  const regionRates = await taxModuleService.listTaxRates({
     tax_region_id: indiaTaxRegion.id,
-    is_default: true,
   })
+  const existingRates = regionRates.filter((r) => r.is_default)
 
   if (existingRates.length) {
     logger.info(
