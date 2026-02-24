@@ -11,7 +11,7 @@ export const ALLOWED_CRB_MODELS = ["SWFP", "CLB", "BLTZ", "BLTZP"]
 
 export const ALLOWED_COLORS = ["RED", "WHT", "PNK"]
 
-export const ALLOWED_PACKS = ["P01", "P06", "P12"]
+export const ALLOWED_PACKS = ["P01", "P03", "P06", "P12"]
 
 export const CRB_SKU_REGEX =
-  /^SVB-CRB-(SWFP|CLB|BLTZ|BLTZP)-(RED|WHT|PNK)-(P01|P06|P12)$/
+  /^SVB-CRB-(SWFP|CLB|BLTZ|BLTZP)-(RED|WHT|PNK)-(P01|P03|P06|P12)$/
