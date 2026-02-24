@@ -22,5 +22,4 @@ jobs:
             git pull origin main
             yarn install
             yarn build
-            npx medusa build --admin-only
             pm2 restart medusa
