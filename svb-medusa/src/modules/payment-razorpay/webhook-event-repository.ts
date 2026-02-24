@@ -19,9 +19,15 @@ export type MarkProcessedInput = {
 }
 
 export class RazorpayWebhookEventRepository {
+  private static schemaEnsured = false
+
   constructor(private readonly pgConnection: PgConnectionLike) {}
 
   async ensureSchema(): Promise<void> {
+    if (RazorpayWebhookEventRepository.schemaEnsured) {
+      return
+    }
+
     await this.pgConnection.raw(`
       CREATE TABLE IF NOT EXISTS ${RAZORPAY_WEBHOOK_EVENTS_TABLE} (
         id TEXT PRIMARY KEY,
@@ -30,6 +36,8 @@ export class RazorpayWebhookEventRepository {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `)
+
+    RazorpayWebhookEventRepository.schemaEnsured = true
   }
 
   async markProcessed(input: MarkProcessedInput): Promise<{

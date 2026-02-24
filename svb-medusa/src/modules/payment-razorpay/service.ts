@@ -544,18 +544,6 @@ export default class RazorpayPaymentProviderService extends AbstractPaymentProvi
       )
     `)
     await this.pgConnection.raw(`
-      ALTER TABLE ${SESSION_ORDER_TABLE}
-      ADD COLUMN IF NOT EXISTS amount BIGINT
-    `)
-    await this.pgConnection.raw(`
-      ALTER TABLE ${SESSION_ORDER_TABLE}
-      ADD COLUMN IF NOT EXISTS currency_code TEXT
-    `)
-    await this.pgConnection.raw(`
-      ALTER TABLE ${SESSION_ORDER_TABLE}
-      ADD COLUMN IF NOT EXISTS attempt_count INTEGER
-    `)
-    await this.pgConnection.raw(`
       UPDATE ${SESSION_ORDER_TABLE}
       SET amount = COALESCE(amount, 0),
           currency_code = COALESCE(NULLIF(currency_code, ''), 'INR'),
