@@ -78,42 +78,51 @@ const isKnownOption = (value: string, options: readonly string[]): boolean => {
   return options.includes(value)
 }
 
-// ── MultiChip ─────────────────────────────────────────────────────────────────
-// Toggleable pill buttons for multi-select fields.
-interface MultiChipProps {
+// ── MultiCheckbox ─────────────────────────────────────────────────────────────
+// Checkbox list for multi-select fields.
+interface MultiCheckboxProps {
   options: readonly string[]
   values: string[]
   onChange: (values: string[]) => void
   disabled: boolean
 }
 
-const MultiChip = ({ options, values, onChange, disabled }: MultiChipProps) => {
+const MultiCheckbox = ({ options, values, onChange, disabled }: MultiCheckboxProps) => {
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
       {options.map((opt) => {
-        const active = values.includes(opt)
+        const checked = values.includes(opt)
+        const id = `mc-${opt.replace(/\s+/g, "-").toLowerCase()}`
         return (
-          <button
-            key={opt}
-            type="button"
-            disabled={disabled}
-            onClick={() =>
-              onChange(active ? values.filter((v) => v !== opt) : [...values, opt])
-            }
-            style={{
-              padding: "3px 10px",
-              borderRadius: "9999px",
-              border: `1px solid ${active ? "#7c3aed" : "#d1d5db"}`,
-              backgroundColor: active ? "#7c3aed" : "transparent",
-              color: active ? "#fff" : "inherit",
-              fontSize: "12px",
-              fontWeight: 500,
-              cursor: disabled ? "not-allowed" : "pointer",
-              opacity: disabled ? 0.6 : 1,
-            }}
-          >
-            {opt}
-          </button>
+          <div key={opt} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <input
+              id={id}
+              type="checkbox"
+              checked={checked}
+              disabled={disabled}
+              onChange={() =>
+                onChange(checked ? values.filter((v) => v !== opt) : [...values, opt])
+              }
+              style={{
+                width: "16px",
+                height: "16px",
+                cursor: disabled ? "not-allowed" : "pointer",
+                accentColor: "#7c3aed",
+                flexShrink: 0,
+              }}
+            />
+            <label
+              htmlFor={id}
+              style={{
+                fontSize: "14px",
+                cursor: disabled ? "not-allowed" : "pointer",
+                opacity: disabled ? 0.6 : 1,
+                userSelect: "none",
+              }}
+            >
+              {opt}
+            </label>
+          </div>
         )
       })}
     </div>
@@ -163,49 +172,67 @@ const ColorChips = ({ values, onChange, disabled }: ColorChipsProps) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
         {BALL_COLORS.map((color) => {
-          const active = values.includes(color)
+          const checked = values.includes(color)
+          const id = `bc-${color.replace(/\s+/g, "-").toLowerCase()}`
           return (
-            <button
-              key={color}
-              type="button"
-              disabled={disabled}
-              onClick={() => toggleKnown(color)}
-              style={{
-                padding: "3px 10px",
-                borderRadius: "9999px",
-                border: `1px solid ${active ? "#7c3aed" : "#d1d5db"}`,
-                backgroundColor: active ? "#7c3aed" : "transparent",
-                color: active ? "#fff" : "inherit",
-                fontSize: "12px",
-                fontWeight: 500,
-                cursor: disabled ? "not-allowed" : "pointer",
-                opacity: disabled ? 0.6 : 1,
-              }}
-            >
-              {color}
-            </button>
+            <div key={color} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <input
+                id={id}
+                type="checkbox"
+                checked={checked}
+                disabled={disabled}
+                onChange={() => toggleKnown(color)}
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  cursor: disabled ? "not-allowed" : "pointer",
+                  accentColor: "#7c3aed",
+                  flexShrink: 0,
+                }}
+              />
+              <label
+                htmlFor={id}
+                style={{
+                  fontSize: "14px",
+                  cursor: disabled ? "not-allowed" : "pointer",
+                  opacity: disabled ? 0.6 : 1,
+                  userSelect: "none",
+                }}
+              >
+                {color}
+              </label>
+            </div>
           )
         })}
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={toggleOther}
-          style={{
-            padding: "3px 10px",
-            borderRadius: "9999px",
-            border: `1px solid ${otherActive ? "#7c3aed" : "#d1d5db"}`,
-            backgroundColor: otherActive ? "#7c3aed" : "transparent",
-            color: otherActive ? "#fff" : "inherit",
-            fontSize: "12px",
-            fontWeight: 500,
-            cursor: disabled ? "not-allowed" : "pointer",
-            opacity: disabled ? 0.6 : 1,
-          }}
-        >
-          Other
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <input
+            id="bc-other"
+            type="checkbox"
+            checked={otherActive}
+            disabled={disabled}
+            onChange={toggleOther}
+            style={{
+              width: "16px",
+              height: "16px",
+              cursor: disabled ? "not-allowed" : "pointer",
+              accentColor: "#7c3aed",
+              flexShrink: 0,
+            }}
+          />
+          <label
+            htmlFor="bc-other"
+            style={{
+              fontSize: "14px",
+              cursor: disabled ? "not-allowed" : "pointer",
+              opacity: disabled ? 0.6 : 1,
+              userSelect: "none",
+            }}
+          >
+            Other
+          </label>
+        </div>
       </div>
       {otherActive && (
         <Input
@@ -581,7 +608,7 @@ const SportsAttributesWidget = ({ data }: DetailWidgetProps<{ id: string }>) => 
             <div style={gridStyle}>
 
               <FieldRow label="Skill Level">
-                <MultiChip
+                <MultiCheckbox
                   options={SKILL_LEVELS}
                   values={attrs.common.skill_level}
                   onChange={(v) => updateCommon("skill_level", v)}
@@ -590,7 +617,7 @@ const SportsAttributesWidget = ({ data }: DetailWidgetProps<{ id: string }>) => 
               </FieldRow>
 
               <FieldRow label="Age Group">
-                <MultiChip
+                <MultiCheckbox
                   options={AGE_GROUPS}
                   values={attrs.common.age_group}
                   onChange={(v) => updateCommon("age_group", v)}
@@ -621,7 +648,7 @@ const SportsAttributesWidget = ({ data }: DetailWidgetProps<{ id: string }>) => 
               </FieldRow>
 
               <FieldRow label="Playing Surface">
-                <MultiChip
+                <MultiCheckbox
                   options={PLAYING_SURFACES}
                   values={attrs.common.playing_surface}
                   onChange={(v) => updateCommon("playing_surface", v)}
