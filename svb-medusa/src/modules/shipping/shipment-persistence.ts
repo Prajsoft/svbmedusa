@@ -525,7 +525,7 @@ export class ShippingPersistenceRepository {
       `SELECT EXISTS (
         SELECT FROM information_schema.tables
         WHERE table_schema = current_schema()
-        AND table_name = $1
+        AND table_name = ?
       ) AS "exists"`,
       [SHIPPING_SHIPMENTS_TABLE]
     )

@@ -539,7 +539,7 @@ export default class RazorpayPaymentProviderService extends AbstractPaymentProvi
       `SELECT EXISTS (
         SELECT FROM information_schema.tables
         WHERE table_schema = current_schema()
-        AND table_name = $1
+        AND table_name = ?
       ) AS "exists"`,
       [SESSION_ORDER_TABLE]
     )
