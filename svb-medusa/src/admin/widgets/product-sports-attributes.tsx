@@ -489,7 +489,7 @@ const SportsAttributesWidget = ({ data }: DetailWidgetProps<{ id: string }>) => 
               ball_size: "",
               overs_durability: "",
             }
-          : { equipment_type: newType as EquipmentType },
+          : { equipment_type: newType as Exclude<EquipmentType, EquipmentType.Ball> },
     }))
   }, [])
 

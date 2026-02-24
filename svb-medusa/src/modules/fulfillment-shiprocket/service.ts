@@ -3,6 +3,7 @@ import type {
   CalculateShippingOptionPriceDTO,
   CalculatedShippingOptionPrice,
   CreateFulfillmentResult,
+  CreateShippingOptionDTO,
   FulfillmentDTO,
   FulfillmentItemDTO,
   FulfillmentOption,
@@ -67,7 +68,7 @@ export default class ShiprocketFulfillmentService extends AbstractFulfillmentPro
   // canCalculate returning false tells Medusa not to call calculatePrice.
 
   async canCalculate(
-    _data: CalculateShippingOptionPriceDTO
+    _data: CreateShippingOptionDTO
   ): Promise<boolean> {
     return false
   }
