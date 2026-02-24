@@ -56,7 +56,9 @@ const setSportsAttributesStep = createStep(
     )
   },
   // Compensation: restore the previous value when a later step fails
-  async ({ product_id, previous_sports_attributes }, { container }) => {
+  async (compensationData, { container }) => {
+    if (!compensationData) return
+    const { product_id, previous_sports_attributes } = compensationData
     const pgConnection = container.resolve(ContainerRegistrationKeys.PG_CONNECTION)
     await pgConnection("product")
       .where("id", product_id)
