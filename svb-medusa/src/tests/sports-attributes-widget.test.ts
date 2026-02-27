@@ -180,10 +180,10 @@ const FULL_ATTRS: SportsAttributes = {
   common: {
     skill_level: ["Beginner", "Intermediate"],
     age_group: ["Adult"],
-    activity_intensity: "Training",
+    activity_intensity: ["Training"],
     playing_surface: ["Grass"],
     certification: "SG Approved",
-    best_for: "Club",
+    best_for: ["Club"],
     in_box_includes: "Ball, Pouch",
     customization_available: false,
     protection_level: "Standard",
@@ -191,7 +191,7 @@ const FULL_ATTRS: SportsAttributes = {
   sport_specific: {
     equipment_type: "Ball" as const,
     ball_type: "Leather",
-    ball_grade: "Match",
+    ball_grade: ["Match"],
     seam_type: "Hand Stitched",
     ball_color: ["Red", "White"],
     ball_size: "Size 5 (Standard)",
@@ -235,8 +235,8 @@ describe("ProductSportsAttributesWidget", () => {
       expect(screen.queryByTestId("skeleton")).toBeNull()
     })
 
-    // Beginner chip should be present and rendered as a button
-    expect(screen.getByRole("button", { name: "Beginner" })).toBeInTheDocument()
+    // Beginner option should be selected in the multi-checkbox control
+    expect(screen.getByRole("checkbox", { name: "Beginner" })).toBeChecked()
     // The ball_type select should show "Leather" as selected value
     const selects = screen.getAllByTestId("select")
     const ballTypeSelect = selects.find(
@@ -272,7 +272,7 @@ describe("ProductSportsAttributesWidget", () => {
     // All selects should have empty value (showing placeholder)
     const selects = screen.getAllByTestId("select") as HTMLSelectElement[]
     for (const sel of selects) {
-      expect(sel.value).toBe("")
+      expect(["", "Ball"]).toContain(sel.value)
     }
   })
 
@@ -292,8 +292,7 @@ describe("ProductSportsAttributesWidget", () => {
     await waitFor(() => expect(screen.queryByTestId("skeleton")).toBeNull())
 
     // Dirty the form so Save becomes enabled
-    const chipButtons = screen.getAllByRole("button", { name: "Beginner" })
-    fireEvent.click(chipButtons[0])
+    fireEvent.click(screen.getByRole("checkbox", { name: "Beginner" }))
 
     const saveBtn = screen.getByRole("button", { name: /save/i }) as HTMLButtonElement
     expect(saveBtn.disabled).toBe(false)
@@ -320,7 +319,7 @@ describe("ProductSportsAttributesWidget", () => {
     await waitFor(() => expect(screen.queryByTestId("skeleton")).toBeNull())
 
     // Dirty the form
-    fireEvent.click(screen.getByRole("button", { name: "Beginner" }))
+    fireEvent.click(screen.getByRole("checkbox", { name: "Beginner" }))
 
     fireEvent.click(screen.getByRole("button", { name: /save/i }))
 
@@ -351,7 +350,7 @@ describe("ProductSportsAttributesWidget", () => {
     await waitFor(() => expect(screen.queryByTestId("skeleton")).toBeNull())
 
     // Dirty the form and save
-    fireEvent.click(screen.getByRole("button", { name: "Beginner" }))
+    fireEvent.click(screen.getByRole("checkbox", { name: "Beginner" }))
     fireEvent.click(screen.getByRole("button", { name: /save/i }))
 
     await waitFor(() => {
@@ -379,7 +378,7 @@ describe("ProductSportsAttributesWidget", () => {
     ).toBeFalsy()
 
     // Edit a field
-    fireEvent.click(screen.getByRole("button", { name: "Beginner" }))
+    fireEvent.click(screen.getByRole("checkbox", { name: "Beginner" }))
 
     const dirtyBadge = screen
       .queryAllByTestId("badge")
@@ -474,12 +473,8 @@ describe("ProductSportsAttributesWidget", () => {
       screen.queryAllByTestId("badge").find((b) => b.textContent === "Unsaved changes")
     ).toBeFalsy()
 
-    // Click the "Other" chip in ball_color section
-    const otherChip = screen
-      .getAllByRole("button")
-      .find((b) => b.textContent === "Other" && !b.hasAttribute("data-testid"))
-    expect(otherChip).toBeDefined()
-    fireEvent.click(otherChip!)
+    // Click the "Other" checkbox in ball_color section
+    fireEvent.click(screen.getByRole("checkbox", { name: "Other" }))
 
     // The custom color input should appear
     await waitFor(() => {

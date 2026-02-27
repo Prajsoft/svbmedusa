@@ -22,6 +22,7 @@
     "seed:tax": "medusa exec ./src/scripts/seed-tax.ts",
     "start": "medusa start --host 0.0.0.0",
     "dev": "medusa develop",
+    "clean:generated": "git restore --worktree -- .medusa/server .medusa/types/query-entry-points.d.ts",
     "check:docs:shipping": "node scripts/check-shipping-docs.js",
     "test:integration:http": "TEST_TYPE=integration:http NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
     "test:integration:modules": "TEST_TYPE=integration:modules NODE_OPTIONS=--experimental-vm-modules jest --silent=false --runInBand --forceExit",
