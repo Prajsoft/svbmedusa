@@ -8,6 +8,7 @@ import {
   transientExternalError,
   validationError,
 } from "../errors"
+import { MedusaError } from "@medusajs/framework/utils"
 
 describe("AppError helpers", () => {
   it("creates validation errors with code/category/httpStatus", () => {
@@ -86,6 +87,40 @@ describe("API error response formatting", () => {
     expect(response.body).toEqual({
       code: "INTERNAL_ERROR",
       message: "An unexpected error occurred.",
+    })
+  })
+
+  it("maps Medusa INVALID_DATA into a 400 response with stable code", () => {
+    const response = toApiErrorResponse(
+      new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Product has 2 option values but there were 1 provided option values."
+      )
+    )
+
+    expect(response).toEqual({
+      status: 400,
+      body: {
+        code: "INVALID_DATA",
+        message: "Product has 2 option values but there were 1 provided option values.",
+      },
+    })
+  })
+
+  it("maps Medusa DUPLICATE_ERROR into a 409 response", () => {
+    const response = toApiErrorResponse(
+      new MedusaError(
+        MedusaError.Types.DUPLICATE_ERROR,
+        "Variant with provided options already exists."
+      )
+    )
+
+    expect(response).toEqual({
+      status: 409,
+      body: {
+        code: "DUPLICATE_ERROR",
+        message: "Variant with provided options already exists.",
+      },
     })
   })
 })

@@ -25,6 +25,12 @@ type KnownCodeDefaults = {
   httpStatus: number
 }
 
+type MedusaTypeDefaults = {
+  code: string
+  category: ErrorCategory
+  httpStatus: number
+}
+
 export type ApiErrorResponsePayload = {
   code: string
   message: string
@@ -58,6 +64,69 @@ const KNOWN_ERROR_CODE_DEFAULTS: Record<string, KnownCodeDefaults> = {
   },
 }
 
+const MEDUSA_ERROR_TYPE_DEFAULTS: Record<string, MedusaTypeDefaults> = {
+  invalid_data: {
+    code: "INVALID_DATA",
+    category: "validation",
+    httpStatus: 400,
+  },
+  invalid_argument: {
+    code: "INVALID_ARGUMENT",
+    category: "validation",
+    httpStatus: 400,
+  },
+  duplicate_error: {
+    code: "DUPLICATE_ERROR",
+    category: "integrity",
+    httpStatus: 409,
+  },
+  conflict: {
+    code: "CONFLICT",
+    category: "integrity",
+    httpStatus: 409,
+  },
+  unexpected_state: {
+    code: "UNEXPECTED_STATE",
+    category: "integrity",
+    httpStatus: 409,
+  },
+  unauthorized: {
+    code: "UNAUTHORIZED",
+    category: "validation",
+    httpStatus: 401,
+  },
+  not_allowed: {
+    code: "NOT_ALLOWED",
+    category: "validation",
+    httpStatus: 403,
+  },
+  not_found: {
+    code: "NOT_FOUND",
+    category: "validation",
+    httpStatus: 404,
+  },
+  payment_authorization_error: {
+    code: "PAYMENT_AUTHORIZATION_ERROR",
+    category: "validation",
+    httpStatus: 400,
+  },
+  payment_requires_more_error: {
+    code: "PAYMENT_REQUIRES_MORE_ERROR",
+    category: "validation",
+    httpStatus: 400,
+  },
+  database_error: {
+    code: "DATABASE_ERROR",
+    category: "internal",
+    httpStatus: 500,
+  },
+  unknown_modules: {
+    code: "UNKNOWN_MODULES",
+    category: "internal",
+    httpStatus: 500,
+  },
+}
+
 function normalizeCode(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined
@@ -73,6 +142,15 @@ function normalizeMessage(value: unknown): string | undefined {
   }
 
   const normalized = value.trim()
+  return normalized || undefined
+}
+
+function normalizeType(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined
+  }
+
+  const normalized = value.trim().toLowerCase()
   return normalized || undefined
 }
 
@@ -199,6 +277,37 @@ function fromKnownCode(
   })
 }
 
+function fromMedusaType(
+  type: string,
+  message: string,
+  details?: Record<string, unknown>
+): AppError {
+  const defaults = MEDUSA_ERROR_TYPE_DEFAULTS[type]
+
+  if (!defaults) {
+    return internalError(type.toUpperCase(), message, { details })
+  }
+
+  if (defaults.category === "integrity") {
+    return integrityError(defaults.code, message, {
+      details,
+      httpStatus: defaults.httpStatus,
+    })
+  }
+
+  if (defaults.category === "internal") {
+    return internalError(defaults.code, message, {
+      details,
+      httpStatus: defaults.httpStatus,
+    })
+  }
+
+  return validationError(defaults.code, message, {
+    details,
+    httpStatus: defaults.httpStatus,
+  })
+}
+
 export function toAppError(
   error: unknown,
   fallback: {
@@ -229,12 +338,17 @@ export function toAppError(
   }
 
   const code = normalizeCode((error as { code?: unknown }).code)
+  const medusaType = normalizeType((error as { type?: unknown }).type)
   const message = normalizeMessage((error as { message?: unknown }).message)
   const details =
     (error as { details?: unknown }).details &&
     typeof (error as { details?: unknown }).details === "object"
       ? ((error as { details?: Record<string, unknown> }).details ?? undefined)
       : undefined
+
+  if (!code && medusaType) {
+    return fromMedusaType(medusaType, message ?? fallbackMessage, details)
+  }
 
   if (!code) {
     return defaultFallback
