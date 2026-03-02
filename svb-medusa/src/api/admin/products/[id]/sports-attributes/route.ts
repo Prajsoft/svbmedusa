@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { validateSportsAttributes } from "./validate"
+import { normalizeSportsAttributes } from "./normalize"
 import { setSportsAttributesWorkflow } from "../../../../../workflows/set-sports-attributes"
 
 // ── GET /admin/products/:id/sports-attributes ─────────────────────────────────
@@ -21,8 +22,10 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       return
     }
 
+    const normalized = normalizeSportsAttributes(row.sports_attributes)
+
     res.status(200).json({
-      sports_attributes: row.sports_attributes ?? null,
+      sports_attributes: normalized ?? null,
     })
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error))
@@ -38,7 +41,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   try {
     const { id } = req.params
-    const body = req.body
+    const body = normalizeSportsAttributes(req.body)
 
     // Validate request body
     const validation = validateSportsAttributes(body)

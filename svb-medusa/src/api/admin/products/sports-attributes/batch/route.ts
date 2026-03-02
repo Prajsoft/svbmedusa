@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { validateSportsAttributes } from "../../[id]/sports-attributes/validate"
+import { normalizeSportsAttributes } from "../../[id]/sports-attributes/normalize"
 import { batchSetSportsAttributesWorkflow } from "../../../../../workflows/set-sports-attributes"
 
 // ── Limits ────────────────────────────────────────────────────────────────────
@@ -61,6 +62,10 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
     // ── Per-item validation ──────────────────────────────────────────────────
     const itemErrors: Record<string, Record<string, string>> = {}
+    const normalizedUpdates: Array<{
+      product_id: string
+      sports_attributes: unknown
+    }> = []
 
     for (let i = 0; i < updates.length; i++) {
       const item = updates[i] as Record<string, unknown>
@@ -78,10 +83,17 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       }
 
       // sports_attributes
-      const attrValidation = validateSportsAttributes(item.sports_attributes)
+      const normalizedSportsAttributes = normalizeSportsAttributes(item.sports_attributes)
+      const attrValidation = validateSportsAttributes(normalizedSportsAttributes)
       if (!attrValidation.valid) {
         itemErrors[String(i)] = attrValidation.errors
+        continue
       }
+
+      normalizedUpdates.push({
+        product_id: item.product_id,
+        sports_attributes: normalizedSportsAttributes,
+      })
     }
 
     if (Object.keys(itemErrors).length > 0) {
@@ -92,15 +104,9 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       return
     }
 
-    // All items are valid — cast to typed array
-    const validUpdates = updates as Array<{
-      product_id: string
-      sports_attributes: unknown
-    }>
-
     // ── Execute workflow (handles existence check, transaction, compensation) ─
     const { result } = await batchSetSportsAttributesWorkflow(req.scope).run({
-      input: { updates: validUpdates },
+      input: { updates: normalizedUpdates },
     })
 
     res.status(200).json({
