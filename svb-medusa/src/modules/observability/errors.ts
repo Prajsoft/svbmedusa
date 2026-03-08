@@ -322,7 +322,9 @@ export function toAppError(
   }
 
   const fallbackCode = fallback.code ?? "INTERNAL_ERROR"
-  const fallbackMessage = fallback.message ?? "An unexpected error occurred."
+  const messageFromError = normalizeMessage((error as { message?: unknown }).message)
+  const fallbackMessage =
+    fallback.message ?? messageFromError ?? "An unexpected error occurred."
   const fallbackStatus = fallback.httpStatus ?? 500
   const fallbackCategory = fallback.category ?? "internal"
 
