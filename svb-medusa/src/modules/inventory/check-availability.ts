@@ -1,7 +1,12 @@
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, MathBN, Modules } from "@medusajs/framework/utils"
 import { AppError, validationError } from "../observability/errors"
 
-export const WAREHOUSE_NAME = "WH-MRT-01"
+export const WAREHOUSE_NAME =
+  process.env.SVB_SELLABLE_LOCATION_NAME?.trim() || "Meerut"
+
+const WAREHOUSE_LOCATION_ID =
+  process.env.SVB_SELLABLE_LOCATION_ID?.trim() ||
+  "sloc_01KCERJASXFVS068SBRPKKST0W"
 
 type ScopeLike = {
   resolve: (key: string) => any
@@ -23,7 +28,20 @@ type VariantInventoryLike = {
   inventory?: {
     location_levels?: Array<{
       location_id?: string | null
-      stock_locations?: {
+      available_quantity?: number | string | null
+      stock_locations?:
+        | {
+            id?: string | null
+            name?: string | null
+            sales_channels?: Array<{ id?: string | null }>
+          }
+        | Array<{
+            id?: string | null
+            name?: string | null
+            sales_channels?: Array<{ id?: string | null }>
+          }>
+        | null
+      stock_location?: {
         id?: string | null
         name?: string | null
         sales_channels?: Array<{ id?: string | null }>
@@ -111,6 +129,7 @@ async function getVariant(scope: ScopeLike, variantId: string): Promise<VariantL
       "inventory_items.inventory_item_id",
       "inventory_items.required_quantity",
       "inventory_items.inventory.location_levels.location_id",
+      "inventory_items.inventory.location_levels.available_quantity",
       "inventory_items.inventory.location_levels.stock_locations.id",
       "inventory_items.inventory.location_levels.stock_locations.name",
       "inventory_items.inventory.location_levels.stock_locations.sales_channels.id",
@@ -132,25 +151,41 @@ function getWarehouseLocationId(
 ): string | undefined {
   for (const item of variant.inventory_items ?? []) {
     for (const level of item.inventory?.location_levels ?? []) {
-      const stockLocation = level.stock_locations
-      if (!stockLocation) {
+      const rawLocations =
+        (Array.isArray(level.stock_locations)
+          ? level.stock_locations
+          : level.stock_locations
+          ? [level.stock_locations]
+          : []) || []
+
+      // Some graph payloads expose only location_id without expanded stock location.
+      if (!rawLocations.length) {
+        if (level.location_id === WAREHOUSE_LOCATION_ID) {
+          return level.location_id
+        }
         continue
       }
 
-      const nameMatches = stockLocation.name === WAREHOUSE_NAME
-      if (!nameMatches) {
-        continue
+      for (const stockLocation of rawLocations) {
+        const resolvedLocationId = stockLocation?.id ?? level.location_id ?? undefined
+        if (!resolvedLocationId || resolvedLocationId !== WAREHOUSE_LOCATION_ID) {
+          continue
+        }
+
+        const channelIds = (stockLocation?.sales_channels ?? [])
+          .map((channel) => channel.id)
+          .filter(Boolean)
+
+        if (
+          salesChannelId &&
+          channelIds.length > 0 &&
+          !channelIds.includes(salesChannelId)
+        ) {
+          continue
+        }
+
+        return resolvedLocationId
       }
-
-      const channelIds = (stockLocation.sales_channels ?? [])
-        .map((channel) => channel.id)
-        .filter(Boolean)
-
-      if (salesChannelId && channelIds.length > 0 && !channelIds.includes(salesChannelId)) {
-        continue
-      }
-
-      return stockLocation.id ?? level.location_id ?? undefined
     }
   }
 
@@ -189,7 +224,7 @@ async function getAvailableQuantityForVariantAtWarehouse(
       inventoryItemId,
       [locationId]
     )
-    const availableQuantity = toNumber(availableRaw)
+    const availableQuantity = Math.max(0, MathBN.convert(availableRaw).toNumber())
     const maxUnitsFromItem = Math.floor(availableQuantity / requiredQuantity)
 
     availableUnits = Math.min(availableUnits, maxUnitsFromItem)
