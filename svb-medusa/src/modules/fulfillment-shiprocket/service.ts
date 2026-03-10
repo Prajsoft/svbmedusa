@@ -106,7 +106,7 @@ export default class ShiprocketFulfillmentService extends AbstractFulfillmentPro
       ) {
         throw new Error(
           `Cannot create Shiprocket shipment: ${err.message}. ` +
-          `Ensure all product variants have weight_grams and dimensions_cm set in their metadata.`
+          `Ensure each variant has valid weight and dimensions (metadata.weight_grams/dimensions_cm or native variant weight/length/width/height).`
         )
       }
       throw err

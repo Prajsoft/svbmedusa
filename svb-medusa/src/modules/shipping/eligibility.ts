@@ -54,6 +54,15 @@ function readShippingClass(value: unknown): string {
   return value.trim().toUpperCase()
 }
 
+function readPackageSizeFromMetadata(metadata: Record<string, unknown> | null | undefined): string {
+  const packageSize = readShippingClass(metadata?.package_size)
+  if (packageSize) {
+    return packageSize
+  }
+
+  return readShippingClass(metadata?.shipping_class)
+}
+
 export const COD_ELIGIBLE_METADATA_KEY = "cod_eligible"
 
 function readCodEligible(value: unknown): boolean {
@@ -84,7 +93,7 @@ export class ShippingOptionIneligibleError extends AppError {
 
 export function getCartShippingProfile(cart: CartLike): CartShippingProfile {
   const shippingClasses = (cart.items ?? [])
-    .map((item) => readShippingClass(item.variant?.metadata?.shipping_class))
+    .map((item) => readPackageSizeFromMetadata(item.variant?.metadata))
     .filter(Boolean)
   const itemCodEligibility = (cart.items ?? []).map((item) =>
     readCodEligible(item.variant?.metadata?.[COD_ELIGIBLE_METADATA_KEY])

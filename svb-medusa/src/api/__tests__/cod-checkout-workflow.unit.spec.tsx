@@ -1,6 +1,7 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import {
   makeCheckoutPaymentWorkflowMiddleware,
+  validateStoreCodPaymentInitWorkflow,
   validateStoreCodPaymentAuthorizeWorkflow,
 } from "../middlewares"
 import {
@@ -56,6 +57,94 @@ function makeCodCartWithCoupon() {
 describe("COD checkout workflow wiring", () => {
   beforeEach(() => {
     __resetMetricsForTests()
+  })
+
+  it("shipping-method selection does not query unsupported cart.discount_codes fields", async () => {
+    const cart = makeCodCart()
+
+    const query = {
+      graph: jest.fn(async ({ entity }: { entity: string }) => {
+        if (entity === "cart") {
+          return { data: [cart] }
+        }
+
+        if (entity === "shipping_option") {
+          return {
+            data: [
+              {
+                id: "so_cod",
+                name: "Cash on Delivery",
+                metadata: { payment_type: "cod" },
+              },
+            ],
+          }
+        }
+
+        return { data: [] }
+      }),
+    }
+
+    const payment = {
+      deletePaymentSession: jest.fn(async () => undefined),
+      createPaymentSession: jest.fn(async () => {
+        cart.payment_collection.payment_sessions = [
+          {
+            id: "payses_cod_1",
+            provider_id: "pp_cod_cod",
+            status: "pending",
+          },
+        ]
+      }),
+    }
+
+    const scope = {
+      resolve: (key: string) => {
+        if (key === ContainerRegistrationKeys.QUERY) {
+          return query
+        }
+
+        if (key === Modules.PAYMENT) {
+          return payment
+        }
+
+        throw new Error(`Unknown container key: ${key}`)
+      },
+    }
+
+    const req = {
+      scope,
+      params: { id: "cart_cod_1" },
+      body: { option_id: "so_cod" },
+      auth_context: { actor_id: "cus_1" },
+    } as any
+
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    } as any
+
+    const next = jest.fn()
+    const middleware = makeCheckoutPaymentWorkflowMiddleware(
+      validateStoreCodPaymentInitWorkflow
+    )
+
+    await middleware(req, res, next)
+
+    expect(next).toHaveBeenCalledTimes(1)
+    expect(res.status).not.toHaveBeenCalled()
+    expect(payment.createPaymentSession).toHaveBeenCalledTimes(1)
+
+    const requestedUnsupportedDiscountCodeFields = query.graph.mock.calls
+      .map((entry) => entry[0])
+      .filter((entry) => entry?.entity === "cart")
+      .some((entry) =>
+        (entry?.fields ?? []).some(
+          (field: unknown) =>
+            typeof field === "string" && field.startsWith("discount_codes.")
+        )
+      )
+
+    expect(requestedUnsupportedDiscountCodeFields).toBe(false)
   })
 
   it("COD checkout path completes to order placement", async () => {

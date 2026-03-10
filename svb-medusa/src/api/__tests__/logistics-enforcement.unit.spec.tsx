@@ -122,4 +122,87 @@ describe("logistics metadata enforcement", () => {
     expect(res.status).not.toHaveBeenCalled()
     expect(res.json).not.toHaveBeenCalled()
   })
+
+  it("allows shipping selection when shipping_class is missing but dimensions/weight are present in metadata", async () => {
+    const scope = makeScope({
+      id: "cart_1",
+      items: [
+        {
+          id: "line_1",
+          variant: {
+            id: "variant_1",
+            sku: "SVB-CRB-SWFP-WHT-P01",
+            metadata: {
+              weight_grams: 180,
+              dimensions_cm: { l: 10, w: 5, h: 5 },
+            },
+          },
+        },
+      ],
+    })
+
+    const req = {
+      scope,
+      params: { id: "cart_1" },
+      body: { option_id: "so_1" },
+    } as any
+
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    } as any
+
+    const next = jest.fn()
+    const middleware = makeLogisticsValidationMiddleware(
+      validateStoreSelectShippingMethodBody
+    )
+
+    await middleware(req, res, next)
+
+    expect(next).toHaveBeenCalledTimes(1)
+    expect(res.status).not.toHaveBeenCalled()
+    expect(res.json).not.toHaveBeenCalled()
+  })
+
+  it("allows shipping selection when dimensions/weight are stored on native variant fields", async () => {
+    const scope = makeScope({
+      id: "cart_1",
+      items: [
+        {
+          id: "line_1",
+          variant: {
+            id: "variant_1",
+            sku: "SVB-CRB-SWFP-WHT-P01",
+            weight: 180,
+            length: 10,
+            width: 5,
+            height: 5,
+            metadata: {},
+          },
+        },
+      ],
+    })
+
+    const req = {
+      scope,
+      params: { id: "cart_1" },
+      body: { option_id: "so_1" },
+    } as any
+
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    } as any
+
+    const next = jest.fn()
+    const middleware = makeLogisticsValidationMiddleware(
+      validateStoreSelectShippingMethodBody
+    )
+
+    await middleware(req, res, next)
+
+    expect(next).toHaveBeenCalledTimes(1)
+    expect(res.status).not.toHaveBeenCalled()
+    expect(res.json).not.toHaveBeenCalled()
+  })
 })

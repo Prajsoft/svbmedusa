@@ -12,6 +12,10 @@ type ScopeLike = {
 type VariantLike = {
   id?: string
   sku?: string | null
+  weight?: number | string | null
+  length?: number | string | null
+  width?: number | string | null
+  height?: number | string | null
   metadata?: Record<string, unknown> | null
 }
 
@@ -23,7 +27,9 @@ type CartLike = {
   }>
 }
 
-const ALLOWED_SHIPPING_CLASSES = new Set(["SMALL", "MEDIUM", "LARGE"])
+const ALLOWED_PACKAGE_SIZES = new Set(["SMALL", "MEDIUM", "LARGE"] as const)
+type PackageSize = "SMALL" | "MEDIUM" | "LARGE"
+const DEFAULT_PACKAGE_SIZE: PackageSize = "SMALL"
 
 export class LogisticsValidationError extends AppError {
   constructor(message: string) {
@@ -52,32 +58,114 @@ function skuOf(variant: VariantLike): string {
   return variant.sku || variant.id || "unknown"
 }
 
+function getMetadata(variant: VariantLike): Record<string, unknown> {
+  const metadata = variant?.metadata
+  if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
+    return metadata
+  }
+
+  return {}
+}
+
+function getDimensionsFromMetadata(metadata: Record<string, unknown>):
+  | { l?: unknown; w?: unknown; h?: unknown }
+  | undefined {
+  const raw = metadata.dimensions_cm
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return undefined
+  }
+
+  return raw as { l?: unknown; w?: unknown; h?: unknown }
+}
+
+function normalizePackageSize(value: unknown): PackageSize | null {
+  if (typeof value !== "string") {
+    return null
+  }
+
+  const normalized = value.trim().toUpperCase()
+  if (!ALLOWED_PACKAGE_SIZES.has(normalized as PackageSize)) {
+    return null
+  }
+
+  return normalized as PackageSize
+}
+
+export type ResolvedVariantLogistics = {
+  weight_grams: number
+  dimensions_cm: {
+    l: number
+    w: number
+    h: number
+  }
+  package_size: PackageSize
+}
+
+export function resolveVariantLogistics(
+  variant: VariantLike
+): ResolvedVariantLogistics | null {
+  const metadata = getMetadata(variant)
+  const dimensionsFromMetadata = getDimensionsFromMetadata(metadata)
+
+  const weightGrams =
+    toPositiveNumber(metadata.weight_grams) ?? toPositiveNumber(variant.weight)
+  const lengthCm =
+    toPositiveNumber(dimensionsFromMetadata?.l) ?? toPositiveNumber(variant.length)
+  const widthCm =
+    toPositiveNumber(dimensionsFromMetadata?.w) ?? toPositiveNumber(variant.width)
+  const heightCm =
+    toPositiveNumber(dimensionsFromMetadata?.h) ?? toPositiveNumber(variant.height)
+
+  if (
+    weightGrams === null ||
+    lengthCm === null ||
+    widthCm === null ||
+    heightCm === null
+  ) {
+    return null
+  }
+
+  const packageSize =
+    normalizePackageSize(metadata.package_size) ??
+    normalizePackageSize(metadata.shipping_class) ??
+    DEFAULT_PACKAGE_SIZE
+
+  return {
+    weight_grams: weightGrams,
+    dimensions_cm: {
+      l: lengthCm,
+      w: widthCm,
+      h: heightCm,
+    },
+    package_size: packageSize,
+  }
+}
+
 export function validateLogistics(variant: VariantLike): LogisticsValidationResult {
-  const metadata = variant?.metadata ?? {}
+  const metadata = getMetadata(variant)
+  const dimensions = getDimensionsFromMetadata(metadata)
   const missing: string[] = []
 
-  if (toPositiveNumber(metadata.weight_grams) === null) {
+  const weightGrams =
+    toPositiveNumber(metadata.weight_grams) ?? toPositiveNumber(variant.weight)
+  if (weightGrams === null) {
     missing.push("weight_grams")
   }
 
-  const dimensions = metadata.dimensions_cm as
-    | { l?: unknown; w?: unknown; h?: unknown }
-    | undefined
-  if (!dimensions || toPositiveNumber(dimensions.l) === null) {
+  const lengthCm =
+    toPositiveNumber(dimensions?.l) ?? toPositiveNumber(variant.length)
+  if (lengthCm === null) {
     missing.push("dimensions_cm.l")
   }
-  if (!dimensions || toPositiveNumber(dimensions.w) === null) {
+  const widthCm =
+    toPositiveNumber(dimensions?.w) ?? toPositiveNumber(variant.width)
+  if (widthCm === null) {
     missing.push("dimensions_cm.w")
   }
-  if (!dimensions || toPositiveNumber(dimensions.h) === null) {
+  const heightCm =
+    toPositiveNumber(dimensions?.h) ?? toPositiveNumber(variant.height)
+  if (heightCm === null) {
     missing.push("dimensions_cm.h")
-  }
-
-  const shippingClassRaw = metadata.shipping_class
-  const shippingClass =
-    typeof shippingClassRaw === "string" ? shippingClassRaw.toUpperCase() : ""
-  if (!ALLOWED_SHIPPING_CLASSES.has(shippingClass)) {
-    missing.push("shipping_class")
   }
 
   if (missing.length > 0) {
@@ -103,7 +191,17 @@ async function getCart(scope: ScopeLike, cartId: string): Promise<CartLike> {
   const query = scope.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "cart",
-    fields: ["id", "items.id", "items.variant.id", "items.variant.sku", "items.variant.metadata"],
+    fields: [
+      "id",
+      "items.id",
+      "items.variant.id",
+      "items.variant.sku",
+      "items.variant.weight",
+      "items.variant.length",
+      "items.variant.width",
+      "items.variant.height",
+      "items.variant.metadata",
+    ],
     filters: { id: cartId },
   })
 

@@ -503,6 +503,14 @@ export function mapShiprocketStatus(rawStatus: unknown): ShipmentStatus {
   }
 
   if (
+    normalized.includes("fail") ||
+    normalized.includes("undeliver") ||
+    normalized.includes("exception")
+  ) {
+    return ShipmentStatusValue.FAILED
+  }
+
+  if (
     normalized.includes("deliver") &&
     !normalized.includes("out for")
   ) {
@@ -537,14 +545,6 @@ export function mapShiprocketStatus(rawStatus: unknown): ShipmentStatus {
     normalized.includes("create")
   ) {
     return ShipmentStatusValue.BOOKED
-  }
-
-  if (
-    normalized.includes("fail") ||
-    normalized.includes("undeliver") ||
-    normalized.includes("exception")
-  ) {
-    return ShipmentStatusValue.FAILED
   }
 
   return ShipmentStatusValue.BOOKING_IN_PROGRESS

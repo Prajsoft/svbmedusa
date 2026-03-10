@@ -138,5 +138,97 @@ describe("ShippingPersistenceRepository", () => {
       })
     )
   })
-})
 
+  it("maps undelivered webhook events to FAILED status", async () => {
+    const baseShipmentRow = {
+      id: "ship_1",
+      order_id: "order_1",
+      provider: "shiprocket",
+      internal_reference: "order_1:1",
+      provider_order_id: "order_1:1",
+      provider_shipment_id: "sr_1",
+      provider_awb: "AWB1",
+      status: ShipmentStatus.BOOKED,
+      is_active: true,
+      label_status: ShipmentLabelStatus.AVAILABLE,
+      created_at: "2026-02-19T00:00:00.000Z",
+      updated_at: "2026-02-19T00:00:00.000Z",
+    }
+
+    const raw = jest.fn(async (query: string, bindings?: unknown[]) => {
+      if (
+        query.includes("FROM shipping_shipments") &&
+        query.includes("provider_shipment_id = ?")
+      ) {
+        return { rows: [baseShipmentRow] }
+      }
+
+      if (query.includes("INSERT INTO shipping_events")) {
+        expect(bindings?.[3]).toBe(ShipmentStatus.FAILED)
+        return {
+          rows: [
+            {
+              id: "sev_1",
+              shipment_id: "ship_1",
+              provider: "shiprocket",
+              status: ShipmentStatus.FAILED,
+              raw_status: "undelivered",
+              raw_payload_sanitized: { provider: "shiprocket", status: "Undelivered" },
+              provider_event_id: "evt_fail_1",
+              created_at: "2026-02-19T00:00:00.000Z",
+              updated_at: "2026-02-19T00:00:00.000Z",
+            },
+          ],
+        }
+      }
+
+      if (query.includes("SELECT * FROM shipping_shipments WHERE id = ?")) {
+        return { rows: [baseShipmentRow] }
+      }
+
+      if (query.includes("UPDATE shipping_shipments")) {
+        expect(bindings).toEqual([
+          ShipmentStatus.FAILED,
+          "ship_1",
+          ShipmentStatus.BOOKED,
+        ])
+        return {
+          rows: [
+            {
+              ...baseShipmentRow,
+              status: ShipmentStatus.FAILED,
+              updated_at: "2026-02-19T01:00:00.000Z",
+            },
+          ],
+        }
+      }
+
+      throw new Error(`Unexpected SQL: ${query}`)
+    })
+
+    const repository = new ShippingPersistenceRepository({
+      raw,
+    } as any)
+
+    const result = await repository.processShippingWebhookEvent({
+      provider: "shiprocket",
+      provider_event_id: "evt_fail_1",
+      provider_shipment_id: "sr_1",
+      event_type: "undelivered",
+      payload_sanitized: {
+        status: "Undelivered",
+      },
+    })
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        processed: true,
+        deduped: false,
+        buffered: false,
+        matched: true,
+        shipment_id: "ship_1",
+        status_updated: true,
+      })
+    )
+  })
+})

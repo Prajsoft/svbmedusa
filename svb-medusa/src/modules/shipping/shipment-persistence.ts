@@ -446,9 +446,6 @@ function mapWebhookEventToShipmentStatus(
     if (token.includes("rto_initiated")) {
       return ShipmentStatus.RTO_INITIATED
     }
-    if (token.includes("delivered")) {
-      return ShipmentStatus.DELIVERED
-    }
     if (
       token.includes("cancelled") ||
       token.includes("canceled") ||
@@ -462,6 +459,9 @@ function mapWebhookEventToShipmentStatus(
       token.includes("exception")
     ) {
       return ShipmentStatus.FAILED
+    }
+    if (token.includes("delivered")) {
+      return ShipmentStatus.DELIVERED
     }
   }
 

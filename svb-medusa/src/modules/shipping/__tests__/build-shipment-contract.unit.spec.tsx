@@ -102,6 +102,56 @@ describe("buildShipmentContract", () => {
     expect(contract.cod).toEqual({ enabled: true, amount: 1499 })
   })
 
+  it("builds package from native variant dimensions/weight when metadata keys are absent", () => {
+    const order = {
+      id: "order_native_fields_01",
+      display_id: 1002,
+      shipping_address: {
+        first_name: "Prash",
+        last_name: "K",
+        phone: "9999999999",
+        address_1: "Street 1",
+        city: "Chennai",
+        province: "TN",
+        postal_code: "600001",
+        country_code: "IN",
+      },
+      items: [
+        {
+          id: "item_1",
+          title: "Swift Plus Ball",
+          quantity: 2,
+          variant: {
+            id: "var_1",
+            sku: "SVB-CRB-SWFP-WHT-P01",
+            weight: 160,
+            length: 10,
+            width: 6,
+            height: 4,
+            metadata: {},
+          },
+        },
+      ],
+      payment_collections: [
+        {
+          payments: [{ provider_id: "pp_system_default", amount: 999 }],
+        },
+      ],
+      total: 999,
+    }
+
+    const contract = buildShipmentContract(order)
+
+    expect(contract.packages).toHaveLength(1)
+    expect(contract.packages[0]).toEqual({
+      weight_grams: 320,
+      dimensions_cm: { l: 10, w: 6, h: 8 },
+      items: [{ sku: "SVB-CRB-SWFP-WHT-P01", qty: 2, name: "Swift Plus Ball" }],
+    })
+    expect(contract.cod).toEqual({ enabled: false, amount: 0 })
+    expect(contract.invoice_ref).toBe("1002")
+  })
+
   it("throws MISSING_LOGISTICS_METADATA when any item misses dimensions/weight", () => {
     const order = {
       id: "order_missing_logistics",

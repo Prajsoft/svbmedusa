@@ -1,11 +1,11 @@
 import {
   LogisticsValidationError,
+  resolveVariantLogistics,
   validateLogistics,
 } from "../catalog/validate-logistics"
 
 const DEFAULT_PICKUP_LOCATION_CODE = "WH-MRT-01"
 const COD_PAYMENT_PROVIDER_ID = "pp_cod_cod"
-const SMALL_SHIPPING_CLASS = "SMALL"
 
 type AddressLike = {
   first_name?: string | null
@@ -24,6 +24,10 @@ type VariantLike = {
   id?: string
   sku?: string | null
   title?: string | null
+  weight?: number | string | null
+  length?: number | string | null
+  width?: number | string | null
+  height?: number | string | null
   metadata?: Record<string, unknown> | null
 }
 
@@ -120,15 +124,6 @@ function toNumber(value: unknown): number {
   return 0
 }
 
-function toPositiveNumber(value: unknown): number | null {
-  const parsed = toNumber(value)
-  if (parsed <= 0) {
-    return null
-  }
-
-  return parsed
-}
-
 function toPositiveInt(value: unknown): number {
   const parsed = Math.floor(toNumber(value))
   return parsed > 0 ? parsed : 0
@@ -191,7 +186,6 @@ function ensureItemLogistics(item: LineItemLike): {
   name: string
   weightGrams: number
   dimensions: { l: number; w: number; h: number }
-  shippingClass: string
 } {
   const qty = toPositiveInt(item.quantity)
   if (qty <= 0) {
@@ -213,26 +207,23 @@ function ensureItemLogistics(item: LineItemLike): {
     throw new LogisticsValidationError(logistics.message)
   }
 
-  const metadata = (variant.metadata ?? {}) as Record<string, unknown>
-  const dimensions = (metadata.dimensions_cm ?? {}) as {
-    l?: unknown
-    w?: unknown
-    h?: unknown
+  const resolvedLogistics = resolveVariantLogistics(variant)
+  if (!resolvedLogistics) {
+    throw new LogisticsValidationError(
+      `Line item ${item.id ?? "unknown"} is missing variant logistics metadata.`
+    )
   }
-
-  const weightGrams = toPositiveNumber(metadata.weight_grams) as number
-  const l = toPositiveNumber(dimensions.l) as number
-  const w = toPositiveNumber(dimensions.w) as number
-  const h = toPositiveNumber(dimensions.h) as number
-  const shippingClass = String(metadata.shipping_class ?? "").toUpperCase()
 
   return {
     qty,
     sku: getItemSku(item),
     name: getItemDisplayName(item, getItemSku(item)),
-    weightGrams,
-    dimensions: { l, w, h },
-    shippingClass,
+    weightGrams: resolvedLogistics.weight_grams,
+    dimensions: {
+      l: resolvedLogistics.dimensions_cm.l,
+      w: resolvedLogistics.dimensions_cm.w,
+      h: resolvedLogistics.dimensions_cm.h,
+    },
   }
 }
 
@@ -246,13 +237,6 @@ function buildSinglePackage(items: LineItemLike[]) {
 
   for (const item of items) {
     const parsed = ensureItemLogistics(item)
-
-    if (parsed.shippingClass !== SMALL_SHIPPING_CLASS) {
-      throw new ShipmentContractBuildError(
-        "UNSUPPORTED_SHIPPING_CLASS",
-        `v1 supports only ${SMALL_SHIPPING_CLASS} shipping_class for packaging.`
-      )
-    }
 
     totalWeight += parsed.weightGrams * parsed.qty
     maxL = Math.max(maxL, parsed.dimensions.l)

@@ -1037,6 +1037,8 @@ describe("ShiprocketProvider mappings", () => {
     expect(mapShiprocketStatus("In Transit")).toBe(ShipmentStatus.IN_TRANSIT)
     expect(mapShiprocketStatus("Out For Delivery")).toBe(ShipmentStatus.OFD)
     expect(mapShiprocketStatus("Delivered")).toBe(ShipmentStatus.DELIVERED)
+    expect(mapShiprocketStatus("Undelivered")).toBe(ShipmentStatus.FAILED)
+    expect(mapShiprocketStatus("Delivery Failed")).toBe(ShipmentStatus.FAILED)
     expect(mapShiprocketStatus("RTO In Transit")).toBe(
       ShipmentStatus.RTO_IN_TRANSIT
     )
