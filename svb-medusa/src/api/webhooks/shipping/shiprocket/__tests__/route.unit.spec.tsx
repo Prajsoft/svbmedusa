@@ -1,6 +1,10 @@
 import crypto from "crypto"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { POST as shiprocketWebhookRoute } from "../route"
+import {
+  GET as shiprocketWebhookGetRoute,
+  OPTIONS as shiprocketWebhookOptionsRoute,
+  POST as shiprocketWebhookRoute,
+} from "../route"
 import { ShipmentStatus } from "../../../../../integrations/carriers/provider-contract"
 import {
   SHIPPING_EVENTS_TABLE,
@@ -536,6 +540,50 @@ describe("Shiprocket shipping webhook route", () => {
 
   afterAll(() => {
     process.env = OLD_ENV
+  })
+
+  it("returns 200 for GET validation pings", async () => {
+    const harness = makeHarness()
+    const req = makeReq(harness.scope, {
+      body: {},
+      headers: {},
+    })
+    const res = makeRes()
+
+    await shiprocketWebhookGetRoute(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.payload).toEqual(
+      expect.objectContaining({
+        ok: true,
+        provider: "shiprocket",
+        endpoint: "/webhooks/shipping/shiprocket",
+        methods: ["POST"],
+        token_header: "x-api-key",
+        correlation_id: expect.any(String),
+      })
+    )
+  })
+
+  it("returns 200 for OPTIONS with allow list", async () => {
+    const harness = makeHarness()
+    const req = makeReq(harness.scope, {
+      body: {},
+      headers: {},
+    })
+    const res = makeRes()
+
+    await shiprocketWebhookOptionsRoute(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.payload).toEqual(
+      expect.objectContaining({
+        ok: true,
+        provider: "shiprocket",
+        allow: ["POST", "GET", "OPTIONS"],
+        correlation_id: expect.any(String),
+      })
+    )
   })
 
   it("processes verified webhook when shipment is matched", async () => {

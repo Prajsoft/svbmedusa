@@ -6,6 +6,9 @@ This document describes the Shiprocket adapter as implemented behind the provide
 
 Primary route:
 - `POST /webhooks/shipping/shiprocket`
+- Alias route (recommended for Shiprocket dashboard URL field):
+  - `POST /webhooks/shipping/events`
+  - delegates to the same Shiprocket webhook pipeline
 
 ## API User Creation (Shiprocket Dashboard)
 
@@ -58,7 +61,13 @@ Rules:
 Webhook header requirement:
 - `x-api-key` must match `SHIPROCKET_WEBHOOK_TOKEN`.
 - backward compatibility: `anx-api-key` is also accepted.
-- This is the active verification path used by `POST /webhooks/shipping/shiprocket`.
+- This is the active verification path used by both:
+  - `POST /webhooks/shipping/shiprocket`
+  - `POST /webhooks/shipping/events`
+
+Validation ping compatibility:
+- `GET /webhooks/shipping/shiprocket` returns `200` for endpoint probes.
+- `OPTIONS /webhooks/shipping/shiprocket` returns `200` + `Allow` header.
 
 Default:
 - reject unverified webhook with `401` (`SIGNATURE_INVALID` error envelope).

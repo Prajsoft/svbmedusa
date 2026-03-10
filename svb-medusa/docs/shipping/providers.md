@@ -190,6 +190,7 @@ Config env vars:
 Code source:
 - `src/modules/shipping/webhook-security-policy.ts`
 - `src/api/webhooks/shipping/shiprocket/route.ts`
+- `src/api/webhooks/shipping/events/route.ts` (alias)
 - `src/integrations/carriers/shiprocket.ts`
 
 Default behavior:
@@ -225,6 +226,7 @@ Access pattern:
 ### HTTP endpoints
 
 - `POST /webhooks/shipping/shiprocket`
+- `POST /webhooks/shipping/events` (Shiprocket alias endpoint)
 - `GET /shipments/:id/label`
 
 ### Scheduled jobs

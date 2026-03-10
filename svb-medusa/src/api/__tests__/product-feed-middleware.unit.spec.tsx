@@ -85,7 +85,7 @@ describe("product-feed middleware query validation", () => {
     )
   })
 
-  it("preserves raw body for Shiprocket webhooks and applies correlation middleware to shipping routes", () => {
+  it("preserves raw body for Shiprocket webhook routes and applies correlation middleware to shipping routes", () => {
     const config = middlewaresConfig as any
 
     const shiprocketWebhookRoute = (config.routes ?? []).find(
@@ -97,6 +97,20 @@ describe("product-feed middleware query validation", () => {
 
     expect(shiprocketWebhookRoute).toBeDefined()
     expect(shiprocketWebhookRoute.bodyParser).toEqual(
+      expect.objectContaining({
+        preserveRawBody: true,
+      })
+    )
+
+    const shiprocketAliasWebhookRoute = (config.routes ?? []).find(
+      (route: any) =>
+        route.matcher === "/webhooks/shipping/events" &&
+        Array.isArray(route.methods) &&
+        route.methods.includes("POST")
+    )
+
+    expect(shiprocketAliasWebhookRoute).toBeDefined()
+    expect(shiprocketAliasWebhookRoute.bodyParser).toEqual(
       expect.objectContaining({
         preserveRawBody: true,
       })

@@ -422,6 +422,13 @@ export default defineMiddlewares({
       },
     },
     {
+      methods: ["POST"],
+      matcher: "/webhooks/shipping/events",
+      bodyParser: {
+        preserveRawBody: true,
+      },
+    },
+    {
       methods: ["GET"],
       matcher: "/product-feed",
       middlewares: [validateAndTransformQuery(productFeedQuerySchema, {})],

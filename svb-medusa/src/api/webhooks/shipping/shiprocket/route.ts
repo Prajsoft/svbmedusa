@@ -423,13 +423,22 @@ function normalizeError(
   }
 }
 
-export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
+function attachCorrelationHeader(
+  req: MedusaRequest,
+  res: MedusaResponse
+): string {
   const correlationId = extractCorrelationIdFromRequest(req as any)
   ;(req as any).correlation_id = correlationId
 
   if (typeof (res as any).setHeader === "function") {
     ;(res as any).setHeader(CORRELATION_ID_HEADER, correlationId)
   }
+
+  return correlationId
+}
+
+export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
+  const correlationId = attachCorrelationHeader(req, res)
 
   const rawBody = getRawBody(req)
   const body = toRecord(req.body ?? {})
@@ -571,4 +580,32 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
 
     res.status(normalizedError.status).json(normalizedError.body)
   }
+}
+
+export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
+  const correlationId = attachCorrelationHeader(req, res)
+
+  res.status(200).json({
+    ok: true,
+    provider: "shiprocket",
+    endpoint: "/webhooks/shipping/shiprocket",
+    methods: ["POST"],
+    token_header: "x-api-key",
+    correlation_id: correlationId,
+  })
+}
+
+export const OPTIONS = async (req: MedusaRequest, res: MedusaResponse) => {
+  const correlationId = attachCorrelationHeader(req, res)
+
+  if (typeof (res as any).setHeader === "function") {
+    ;(res as any).setHeader("Allow", "POST, GET, OPTIONS")
+  }
+
+  res.status(200).json({
+    ok: true,
+    provider: "shiprocket",
+    allow: ["POST", "GET", "OPTIONS"],
+    correlation_id: correlationId,
+  })
 }
