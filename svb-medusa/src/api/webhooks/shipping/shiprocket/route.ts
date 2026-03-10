@@ -112,7 +112,9 @@ function verifyShiprocketWebhookToken(input: {
 }): boolean {
   const env = input.env ?? process.env
   const expected = readText(env.SHIPROCKET_WEBHOOK_TOKEN)
-  const provided = readHeader(input.headers ?? {}, "anx-api-key")
+  const provided =
+    readHeader(input.headers ?? {}, "x-api-key") ||
+    readHeader(input.headers ?? {}, "anx-api-key")
   return constantTimeEqual(expected, provided)
 }
 

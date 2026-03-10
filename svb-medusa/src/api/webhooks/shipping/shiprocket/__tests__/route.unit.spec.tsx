@@ -586,6 +586,51 @@ describe("Shiprocket shipping webhook route", () => {
     )
   })
 
+  it("processes verified webhook when Shiprocket sends x-api-key header", async () => {
+    const harness = makeHarness()
+    addShipment(harness.shipments, {
+      id: "ship_x_api_1",
+      provider_shipment_id: "sr_ship_x_api_1",
+      provider_awb: "awb_x_api_1",
+      status: ShipmentStatus.BOOKED,
+    })
+
+    const body = {
+      event: "in_transit",
+      shipment_id: "sr_ship_x_api_1",
+      awb_code: "awb_x_api_1",
+      status: "In Transit",
+      current_timestamp: "2026-02-21T00:01:00.000Z",
+      current_status_id: 6,
+      shipment_status_id: 6,
+    }
+    const req = makeReq(harness.scope, {
+      body,
+      headers: {
+        "x-api-key": "shiprocket_token_test",
+      },
+    })
+    const res = makeRes()
+
+    await shiprocketWebhookRoute(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.payload).toEqual(
+      expect.objectContaining({
+        ok: true,
+        provider: "shiprocket",
+        event_id: deriveShiprocketWebhookEventId(body),
+        processed: true,
+        buffered: false,
+        matched: true,
+        shipment_id: "ship_x_api_1",
+        security_mode: "verified",
+      })
+    )
+    expect(harness.events).toHaveLength(1)
+    expect(harness.shipments[0].status).toBe(ShipmentStatus.IN_TRANSIT)
+  })
+
   it("buffers verified webhook when shipment is not found", async () => {
     const harness = makeHarness()
     const body = {

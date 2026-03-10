@@ -56,7 +56,8 @@ Rules:
 ## Webhook Security Policy
 
 Webhook header requirement:
-- `anx-api-key` must match `SHIPROCKET_WEBHOOK_TOKEN`.
+- `x-api-key` must match `SHIPROCKET_WEBHOOK_TOKEN`.
+- backward compatibility: `anx-api-key` is also accepted.
 - This is the active verification path used by `POST /webhooks/shipping/shiprocket`.
 
 Default:
@@ -67,7 +68,7 @@ Override:
 
 HMAC note:
 - `SHIPROCKET_WEBHOOK_SECRET` + `SHIPROCKET_WEBHOOK_SIGNATURE_HEADER` are used by provider-level `verifyWebhook(...)`.
-- The current webhook route already verifies `anx-api-key` and then passes `verify_signature: () => true` to the shared pipeline, so operators should treat `SHIPROCKET_WEBHOOK_TOKEN` as the mandatory runtime control.
+- The current webhook route verifies `x-api-key` (and accepts legacy `anx-api-key`) and then passes `verify_signature: () => true` to the shared pipeline, so operators should treat `SHIPROCKET_WEBHOOK_TOKEN` as the mandatory runtime control.
 
 ## Status Mapping (Shiprocket -> Normalized)
 

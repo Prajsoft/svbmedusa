@@ -199,7 +199,7 @@ Default behavior:
 
 Shiprocket verification inputs:
 - `SHIPROCKET_WEBHOOK_TOKEN`
-- header: `anx-api-key`
+- header: `x-api-key` (legacy `anx-api-key` also accepted)
 
 ## Label Lifecycle
 
