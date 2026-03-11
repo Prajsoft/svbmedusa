@@ -260,6 +260,10 @@ Internal payment language:
    - `RAZORPAY_CHECKOUT_INITIATED`
    - `RAZORPAY_SIGNATURE_OK` / `RAZORPAY_SIGNATURE_FAIL`
    - `RAZORPAY_WEBHOOK_RECEIVED` / `RAZORPAY_WEBHOOK_PROCESSED` / `RAZORPAY_WEBHOOK_FAILED`
+5. If checkout failed after a successful popup, also search for:
+   - `RAZORPAY_CANCEL_CALLED`
+   - `Cannot cancel a paid Razorpay payment.`
+   - `Could not delete all payment sessions`
 
 ### Common Failures and Fixes
 
@@ -272,6 +276,10 @@ Internal payment language:
 - Signature invalid (checkout):
   - Verify frontend sent all 3 fields exactly.
   - Confirm server key secret is correct for environment.
+- `409 Could not delete all payment sessions` after successful Razorpay popup:
+  - Usually the storefront tried to create a second Razorpay payment session after the original session was already `authorized` or `captured`.
+  - Check for `RAZORPAY_CANCEL_CALLED` followed by `Cannot cancel a paid Razorpay payment.`
+  - Fix storefront session reuse first (`pending`, `authorized`, `captured`) before suspecting key/config drift.
 - Webhook signature invalid:
   - Check `RAZORPAY_WEBHOOK_SECRET` matches Razorpay dashboard webhook config.
 - Rate limiting (`429`):
