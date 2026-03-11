@@ -1380,20 +1380,36 @@ export default class RazorpayPaymentProviderService extends AbstractPaymentProvi
       })
     }
 
-    const captured = await this.requestWithRetry<RazorpayPaymentResponse>({
-      path: `/v1/payments/${paymentId}/capture`,
-      method: "POST",
-      correlationId,
-      body: {
-        amount,
-        currency: currencyCode,
-      },
-    })
-    this.mergePaymentData(data, captured, correlationId)
+    try {
+      const captured = await this.requestWithRetry<RazorpayPaymentResponse>({
+        path: `/v1/payments/${paymentId}/capture`,
+        method: "POST",
+        correlationId,
+        body: {
+          amount,
+          currency: currencyCode,
+        },
+      })
+      this.mergePaymentData(data, captured, correlationId)
+    } catch (err) {
+      // Razorpay returns 400 "already been captured" when the payment was captured
+      // outside this system (e.g. via webhook or Razorpay dashboard).
+      // Treat as idempotent success so Medusa's payment state stays consistent.
+      const isAlreadyCaptured =
+        err instanceof Error && /already.{0,10}captured/i.test(err.message)
+      if (!isAlreadyCaptured) {
+        throw err
+      }
+      this.log("info", "CAPTURE_IDEMPOTENT_ALREADY_CAPTURED", correlationId, {
+        payment_id: paymentId,
+      })
+    }
+
     this.transitionProviderStatus({
       data,
       next_status: "captured",
       correlationId,
+      onInvalid: "noop",
     })
     data.captured_at = readText(data.captured_at) || new Date().toISOString()
 
