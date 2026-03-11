@@ -6,6 +6,7 @@ import {
   extractCorrelationIdFromRequest,
 } from "../../../../modules/logging/correlation"
 import { logEvent } from "../../../../modules/logging/log-event"
+import { emitBusinessEvent } from "../../../../modules/logging/business-events"
 import { processCarrierWebhook } from "../../../../modules/shipping/webhook-pipeline"
 import { ShippingPersistenceRepository } from "../../../../modules/shipping/shipment-persistence"
 import {
@@ -545,6 +546,57 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
         scopeOrLogger: (req as any).scope,
       }
     )
+
+    // Emit fulfillment status event when a matched shipment status changes so
+    // the shipping-status-updated subscriber can drive the fulfillment state
+    // machine forward without admin intervention.
+    if (result.matched && result.status_updated && result.shipment_id && normalized.status) {
+      try {
+        const shipment = await repository.getShipmentById(result.shipment_id)
+        const internalRef = readText(shipment?.internal_reference)
+        // internal_reference format: ship_{order_id}_{attempt}
+        if (shipment?.order_id && internalRef.startsWith("ship_")) {
+          const withoutPrefix = internalRef.slice("ship_".length)
+          const lastUnderscore = withoutPrefix.lastIndexOf("_")
+          const attempt =
+            lastUnderscore !== -1
+              ? parseInt(withoutPrefix.slice(lastUnderscore + 1), 10)
+              : 1
+          const orderId =
+            lastUnderscore !== -1
+              ? withoutPrefix.slice(0, lastUnderscore)
+              : readText(shipment.order_id)
+          if (orderId && Number.isFinite(attempt) && attempt >= 1) {
+            await emitBusinessEvent((req as any).scope, {
+              name: "shipping.status_updated",
+              correlation_id: correlationId,
+              workflow_name: "shiprocket_webhook",
+              step_name: "emit_status_update",
+              order_id: orderId,
+              data: {
+                order_id: orderId,
+                shipment_id: result.shipment_id,
+                new_status: normalized.status,
+                fulfillment_attempt: attempt,
+                provider: "shiprocket",
+                correlation_id: correlationId,
+              },
+            })
+          }
+        }
+      } catch (emitError) {
+        logEvent(
+          "SHIPPING_STATUS_EVENT_EMIT_FAILED",
+          {
+            shipment_id: result.shipment_id,
+            error:
+              emitError instanceof Error ? emitError.message : "unknown",
+          },
+          correlationId,
+          { level: "warn", scopeOrLogger: (req as any).scope }
+        )
+      }
+    }
 
     res.status(200).json({
       ok: true,

@@ -78,7 +78,7 @@ export class FulfillmentStatusTransitionError extends Error {
 const ALLOWED_NEXT_STATUS: Record<FulfillmentStatus, FulfillmentStatus[]> = {
   requested: ["ready_for_shipment"],
   ready_for_shipment: ["shipped"],
-  shipped: ["delivered"],
+  shipped: ["delivered", "delivery_failed"],
   delivered: ["rto_initiated"],
   delivery_failed: ["rto_initiated"],
   rto_initiated: ["rto_delivered"],

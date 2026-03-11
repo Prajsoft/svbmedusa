@@ -126,6 +126,11 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
         return order?.display_id
           ? `SVB Sports — Order #${order.display_id} Confirmed`
           : "SVB Sports — Order Confirmed"
+      case "ops-alert": {
+        const severity = typeof data?.severity === "string" ? data.severity.toUpperCase() : "ALERT"
+        const type = typeof data?.type === "string" ? data.type.replace(/_/g, " ") : "ops alert"
+        return `[SVB Sports OPS ${severity}] ${type}`
+      }
       default:
         return "SVB Sports — Notification"
     }
@@ -138,9 +143,52 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     switch (template) {
       case "order-placed":
         return this.orderPlacedHtml(data?.order as OrderData | undefined)
+      case "ops-alert":
+        return this.opsAlertHtml(data)
       default:
         return `<p>You have a new notification from SVB Sports.</p>`
     }
+  }
+
+  private opsAlertHtml(data?: Record<string, unknown>): string {
+    const type = typeof data?.type === "string" ? data.type.replace(/_/g, " ") : "unknown"
+    const severity = typeof data?.severity === "string" ? data.severity : "medium"
+    const entityId = typeof data?.entity_id === "string" ? data.entity_id : ""
+    const reason = typeof data?.reason === "string" ? data.reason : ""
+    const suggestedAction = typeof data?.suggested_action === "string" ? data.suggested_action : ""
+    const orderId = typeof data?.order_id === "string" ? data.order_id : ""
+    const raisedAt = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+    const severityColor = severity === "high" ? "#dc2626" : "#d97706"
+
+    return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f7f7f7;font-family:Arial,sans-serif">
+  <div style="max-width:600px;margin:0 auto;background:#fff">
+    <div style="background:#1a1a2e;padding:24px;text-align:center">
+      <h1 style="margin:0;color:#fff;font-size:22px">SVB Sports — Ops Alert</h1>
+    </div>
+    <div style="padding:24px">
+      <div style="border-left:4px solid ${severityColor};padding:12px 16px;background:#fafafa;margin-bottom:20px">
+        <p style="margin:0;font-size:13px;color:#666;text-transform:uppercase;letter-spacing:0.05em">Severity</p>
+        <p style="margin:4px 0 0;font-weight:bold;color:${severityColor};font-size:16px">${severity.toUpperCase()}</p>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <tr><td style="padding:8px 0;color:#666;width:140px">Alert type</td><td style="padding:8px 0;font-weight:bold">${type}</td></tr>
+        ${entityId ? `<tr><td style="padding:8px 0;color:#666">Entity</td><td style="padding:8px 0;font-family:monospace;font-size:12px">${entityId}</td></tr>` : ""}
+        ${orderId ? `<tr><td style="padding:8px 0;color:#666">Order ID</td><td style="padding:8px 0;font-family:monospace;font-size:12px">${orderId}</td></tr>` : ""}
+        <tr><td style="padding:8px 0;color:#666">Raised at</td><td style="padding:8px 0">${raisedAt} IST</td></tr>
+      </table>
+      ${reason ? `<div style="margin-top:16px"><p style="margin:0 0 6px;font-weight:bold;font-size:13px;color:#333">Reason</p><p style="margin:0;color:#555;line-height:1.5">${reason}</p></div>` : ""}
+      ${suggestedAction ? `<div style="margin-top:16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:12px"><p style="margin:0 0 6px;font-weight:bold;font-size:13px;color:#15803d">Suggested action</p><p style="margin:0;color:#166534;line-height:1.5">${suggestedAction}</p></div>` : ""}
+    </div>
+    <div style="background:#f9f9f9;padding:16px 24px;text-align:center;font-size:12px;color:#999">
+      <p style="margin:0">SVB Sports — Internal Operations Alert</p>
+    </div>
+  </div>
+</body>
+</html>`
   }
 
   private formatCurrency(amount: number, currency: string): string {
