@@ -213,11 +213,26 @@ function mapRazorpayWebhook(input: ProviderWebhookMapInput): ProviderWebhookMapp
 }
 
 function toRazorpayRefs(paymentEvent: PaymentEvent): Record<string, unknown> {
-  return {
+  const refs: Record<string, unknown> = {
     razorpay_payment_id: paymentEvent.provider_payment_id ?? null,
     razorpay_order_id: paymentEvent.provider_order_id ?? null,
     razorpay_payment_status: paymentEvent.raw_status ?? null,
   }
+
+  const status = readText(paymentEvent.raw_status).toLowerCase()
+  const now = new Date().toISOString()
+
+  // Set authorized_at so completeCartWorkflow's re-authorization skips
+  // the signature check (isAlreadyVerifiedAuthorizationData requires a
+  // timestamp proof when verified_at is absent).
+  if (status === "authorized" || status === "captured") {
+    refs.authorized_at = now
+  }
+  if (status === "captured") {
+    refs.captured_at = now
+  }
+
+  return refs
 }
 
 const PAYMENT_WEBHOOK_PROVIDERS: Record<string, PaymentWebhookProviderDefinition> = {

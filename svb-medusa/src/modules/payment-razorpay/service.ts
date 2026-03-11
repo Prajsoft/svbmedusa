@@ -1064,10 +1064,17 @@ export default class RazorpayPaymentProviderService extends AbstractPaymentProvi
     const status = readText(data.razorpay_payment_status).toLowerCase()
     const paymentId = readText(data.razorpay_payment_id)
     const orderId = readText(data.razorpay_order_id)
-    const verifiedAt = readText(data.verified_at)
+
+    // Accept either verified_at (set by checkout signature verification) or
+    // authorized_at (set by webhook pipeline) as proof of a completed
+    // authorization so that completeCartWorkflow does not re-attempt signature
+    // verification when the payment was already authorized via webhook.
+    const hasTimestampProof = Boolean(
+      readText(data.verified_at) || readText(data.authorized_at)
+    )
 
     return Boolean(
-      verifiedAt &&
+      hasTimestampProof &&
         paymentId &&
         orderId &&
         (status === "authorized" || status === "captured")

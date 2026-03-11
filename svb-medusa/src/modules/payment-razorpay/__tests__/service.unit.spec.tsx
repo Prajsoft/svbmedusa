@@ -738,6 +738,33 @@ describe("Razorpay payment provider", () => {
     expect(allLogLines).not.toContain("secret_test_key")
   })
 
+  it("skips signature re-verification when session was authorized via webhook (authorized_at set, verified_at null)", async () => {
+    // Regression test: webhook pipeline sets authorized_at but not verified_at.
+    // completeCartWorkflow calls authorizePayment again without a signature.
+    // isAlreadyVerifiedAuthorizationData must accept authorized_at as sufficient proof.
+    const { provider } = makeProvider()
+
+    const authorized = await provider.authorizePayment({
+      data: {
+        session_id: "ps_auth_webhook_1",
+        razorpay_order_id: "order_webhook_1",
+        razorpay_payment_id: "pay_webhook_1",
+        razorpay_payment_status: "authorized",
+        authorized_at: "2026-03-11T00:00:00.000Z",
+        verified_at: null,
+      },
+    } as any)
+
+    expect(authorized.status).toBe(PaymentSessionStatus.AUTHORIZED)
+    expect(authorized.data).toMatchObject({
+      razorpay_order_id: "order_webhook_1",
+      razorpay_payment_id: "pay_webhook_1",
+      razorpay_payment_status: "authorized",
+      authorized_at: "2026-03-11T00:00:00.000Z",
+    })
+    expect(getCounterValue("razorpay.authorize.success")).toBe(1)
+  })
+
   it("returns SIGNATURE_INVALID on checkout signature mismatch", async () => {
     const { provider, logger } = makeProvider()
 
