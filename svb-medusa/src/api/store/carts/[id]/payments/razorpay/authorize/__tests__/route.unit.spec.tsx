@@ -143,9 +143,14 @@ describe("store cart Razorpay authorize route", () => {
       "payses_target",
       expect.objectContaining({
         provider_id: "pp_razorpay_razorpay",
-        razorpay_order_id: "order_test_1",
-        razorpay_payment_id: "pay_test_1",
-        razorpay_signature: "sig_test_1",
+        provider_order_id: "order_test_1",
+        provider_payment_id: "pay_test_1",
+        provider_signature: "sig_test_1",
+        provider_payload: {
+          razorpay_order_id: "order_test_1",
+          razorpay_payment_id: "pay_test_1",
+          razorpay_signature: "sig_test_1",
+        },
         internal_reference: "cart_test_1",
         cart_id: "cart_test_1",
         correlation_id: expect.any(String),

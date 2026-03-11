@@ -367,9 +367,14 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     const paymentModule = req.scope.resolve(Modules.PAYMENT) as PaymentModuleLike
     await paymentModule.authorizePaymentSession(targetSessionId, {
       provider_id: providerId || readText(targetSession.provider_id),
-      razorpay_order_id: orderId,
-      razorpay_payment_id: paymentId,
-      razorpay_signature: signature,
+      provider_order_id: orderId,
+      provider_payment_id: paymentId,
+      provider_signature: signature,
+      provider_payload: {
+        razorpay_order_id: orderId,
+        razorpay_payment_id: paymentId,
+        razorpay_signature: signature,
+      },
       internal_reference: readText(body.internal_reference) || cartId,
       cart_id: cartId,
       correlation_id: correlationId,
