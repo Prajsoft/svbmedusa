@@ -292,24 +292,22 @@ modules[Modules.PAYMENT] = {
   },
 }
 
-// Resend email notification provider
-if (process.env.RESEND_API_KEY) {
-  modules[Modules.NOTIFICATION] = {
-    resolve: "@medusajs/medusa/notification",
-    options: {
-      providers: [
-        {
-          resolve: "./src/modules/resend",
-          id: "resend",
-          options: {
-            channels: ["email"],
-            api_key: process.env.RESEND_API_KEY,
-            from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
-          },
+// Resend email notification provider (always registered; service skips send if api_key is missing)
+modules[Modules.NOTIFICATION] = {
+  resolve: "@medusajs/medusa/notification",
+  options: {
+    providers: [
+      {
+        resolve: "./src/modules/resend",
+        id: "resend",
+        options: {
+          channels: ["email"],
+          api_key: process.env.RESEND_API_KEY || "",
+          from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
         },
-      ],
-    },
-  }
+      },
+    ],
+  },
 }
 
 // Cloudflare R2 file storage (only if R2 is configured)

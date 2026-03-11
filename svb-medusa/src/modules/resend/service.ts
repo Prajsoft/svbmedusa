@@ -78,8 +78,8 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
   async send(
     notification: ProviderSendNotificationDTO
   ): Promise<ProviderSendNotificationResultsDTO> {
-    if (!this.from) {
-      this.logger.warn("Resend: no sender configured — skipping email send.")
+    if (!this.resendClient || !this.from) {
+      this.logger.warn("Resend: api_key or sender not configured — skipping email send.")
       return {}
     }
 
