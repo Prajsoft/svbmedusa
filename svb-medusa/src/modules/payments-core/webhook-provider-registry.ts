@@ -95,6 +95,9 @@ function toPaymentStatusFromRazorpayEvent(eventType: string): PaymentStatusType 
   if (eventType === "payment.captured") {
     return PaymentStatus.CAPTURED
   }
+  if (eventType === "order.paid") {
+    return PaymentStatus.CAPTURED
+  }
   if (eventType === "payment.failed") {
     return PaymentStatus.FAILED
   }

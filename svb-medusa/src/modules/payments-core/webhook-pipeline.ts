@@ -140,6 +140,28 @@ function toMedusaStatus(status: PaymentStatusType): PaymentSessionStatus {
   return PaymentSessionStatus.PENDING
 }
 
+function resolveNextPaymentStatus(input: {
+  provider: string
+  session: PaymentSessionState
+  next: PaymentStatusType
+}): PaymentStatusType {
+  if (
+    normalizeProvider(input.provider) === "razorpay" &&
+    input.next === PaymentStatus.CAPTURED
+  ) {
+    const orderId =
+      readText(input.session.data.order_id) ||
+      readText(input.session.data.completed_order_id) ||
+      readText(input.session.data.orderId)
+
+    if (!orderId) {
+      return PaymentStatus.AUTHORIZED
+    }
+  }
+
+  return input.next
+}
+
 async function getPaymentSessionState(
   query: QueryGraphLike,
   sessionId: string
@@ -328,9 +350,14 @@ export async function processSharedPaymentWebhook(
   }
 
   const current = toInternalFromSession(session)
+  const next = resolveNextPaymentStatus({
+    provider,
+    session,
+    next: mapped.payment_event.status_mapped,
+  })
   const transition = transitionPaymentStatus({
     current,
-    next: mapped.payment_event.status_mapped,
+    next,
     correlation_id: correlationId,
     on_invalid: "noop",
   })

@@ -76,6 +76,7 @@ function makeReq(input?: {
   provider?: string
   headers?: Record<string, string>
   paymentSessionStatus?: string
+  paymentSessionData?: Record<string, unknown>
 }) {
   const events = new Set<string>()
   const logger = {
@@ -102,6 +103,7 @@ function makeReq(input?: {
           currency_code: "INR",
           data: {
             payment_status: "PENDING",
+            ...(input?.paymentSessionData ?? {}),
           },
         },
       ],
@@ -247,7 +249,7 @@ describe("shared payments webhook route", () => {
     })
   })
 
-  it("applies state transition and persists payment session status", async () => {
+  it("keeps pre-order captured Razorpay webhook sessions completable", async () => {
     const body = buildBody({
       event: "payment.captured",
       paymentStatus: "captured",
@@ -268,12 +270,13 @@ describe("shared payments webhook route", () => {
     expect(paymentModule.updatePaymentSession).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "payses_route_1",
-        status: PaymentSessionStatus.CAPTURED,
+        status: PaymentSessionStatus.AUTHORIZED,
         data: expect.objectContaining({
-          payment_status: "CAPTURED",
+          payment_status: "AUTHORIZED",
           provider_event_id: "evt_transition_1",
           razorpay_payment_id: "pay_route_1",
           razorpay_order_id: "order_route_1",
+          razorpay_payment_status: "captured",
         }),
       })
     )
@@ -284,6 +287,88 @@ describe("shared payments webhook route", () => {
         processed: true,
         deduped: false,
         event_type: "payment.captured",
+      })
+    )
+  })
+
+  it("allows captured status after the Razorpay cart already has an order", async () => {
+    const body = buildBody({
+      event: "payment.captured",
+      paymentStatus: "captured",
+    })
+    const signature = signBody(body, "whsec_route_test")
+    const { req, paymentModule } = makeReq({
+      body,
+      paymentSessionStatus: "authorized",
+      paymentSessionData: {
+        payment_status: "AUTHORIZED",
+        order_id: "order_medusa_1",
+      },
+      headers: {
+        "x-razorpay-signature": signature,
+        "x-razorpay-event-id": "evt_transition_post_order_1",
+      },
+    })
+    const res = makeRes()
+
+    await paymentsWebhookRoute(req, res)
+
+    expect(paymentModule.updatePaymentSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "payses_route_1",
+        status: PaymentSessionStatus.CAPTURED,
+        data: expect.objectContaining({
+          payment_status: "CAPTURED",
+          order_id: "order_medusa_1",
+          provider_event_id: "evt_transition_post_order_1",
+          razorpay_payment_id: "pay_route_1",
+          razorpay_order_id: "order_route_1",
+          razorpay_payment_status: "captured",
+        }),
+      })
+    )
+    expect(res.status).toHaveBeenCalledWith(200)
+  })
+
+  it("accepts order.paid without raising shared webhook errors", async () => {
+    const body = buildBody({
+      event: "order.paid",
+      paymentStatus: "captured",
+    })
+    const signature = signBody(body, "whsec_route_test")
+    const { req, paymentModule } = makeReq({
+      body,
+      paymentSessionStatus: "pending",
+      headers: {
+        "x-razorpay-signature": signature,
+        "x-razorpay-event-id": "evt_order_paid_1",
+      },
+    })
+    const res = makeRes()
+
+    await paymentsWebhookRoute(req, res)
+
+    expect(paymentModule.updatePaymentSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "payses_route_1",
+        status: PaymentSessionStatus.AUTHORIZED,
+        data: expect.objectContaining({
+          payment_status: "AUTHORIZED",
+          provider_event_id: "evt_order_paid_1",
+          provider_event_type: "order.paid",
+          razorpay_payment_id: "pay_route_1",
+          razorpay_order_id: "order_route_1",
+          razorpay_payment_status: "captured",
+        }),
+      })
+    )
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.payload).toEqual(
+      expect.objectContaining({
+        ok: true,
+        processed: true,
+        deduped: false,
+        event_type: "order.paid",
       })
     )
   })
