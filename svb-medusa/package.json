@@ -19,6 +19,7 @@
     "patch:types": "node scripts/patch-medusa-types.js",
     "predeploy": "medusa db:migrate",
     "seed": "medusa exec ./src/scripts/seed.ts",
+    "search:sync": "medusa exec ./src/scripts/sync-products-to-search.ts",
     "seed:tax": "medusa exec ./src/scripts/seed-tax.ts",
     "start": "medusa start --host 0.0.0.0",
     "dev": "medusa develop",
