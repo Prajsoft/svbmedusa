@@ -40,16 +40,18 @@ export const sendOrderConfirmationWorkflow = createWorkflow(
     })
 
     // Step 2: Send notification only if order has an email
-    sendNotificationsStep([
-      {
-        to: orders[0].email as string,
-        channel: "email",
-        template: "order-placed",
-        data: {
-          order: orders[0],
+    when({ orders }, ({ orders }) => !!orders[0]?.email).then(() => {
+      sendNotificationsStep([
+        {
+          to: orders[0].email as string,
+          channel: "email",
+          template: "order-placed",
+          data: {
+            order: orders[0],
+          },
         },
-      },
-    ])
+      ])
+    })
 
     return new WorkflowResponse({ orderId: id })
   }

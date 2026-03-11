@@ -18,28 +18,41 @@ export async function GET(
     // 2. Attempt to send a direct notification
     console.log("🧪 TEST ROUTE: Calling createNotifications...")
     
+    const toEmail = (req.query.email as string) || process.env.RESEND_TEST_EMAIL || process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"
+
     await notificationModule.createNotifications({
-      to: "test@example.com", // Replace with your real email if you want
+      to: toEmail,
       channel: "email",
       template: "order-placed",
       data: {
-        // Mock data to satisfy your React template
         order: {
           id: "test-order-123",
           display_id: 99,
-          email: "test@example.com",
-          currency_code: "usd",
-          total: 5000,
+          email: toEmail,
+          currency_code: "inr",
+          total: 65900,
+          subtotal: 60000,
+          shipping_total: 4900,
+          tax_total: 1000,
+          discount_total: 0,
           items: [
-            { product_title: "Test Cricket Ball", quantity: 1, unit_price: 5000 }
+            { title: "SVB Club Cricket Ball", quantity: 2, unit_price: 30000 },
           ],
-          shipping_address: { first_name: "Test User" }
-        }
+          shipping_address: {
+            first_name: "Test",
+            last_name: "User",
+            address_1: "123 Cricket Lane",
+            city: "Meerut",
+            province: "UP",
+            postal_code: "250001",
+            phone: "9876543210",
+          },
+        },
       },
     })
 
-    console.log("✅ TEST ROUTE: Success! Email request sent.")
-    res.json({ message: "Email test sent. Check your console and inbox." })
+    console.log(`✅ TEST ROUTE: Success! Email sent to ${toEmail}`)
+    res.json({ message: `Email test sent to ${toEmail}. Check your inbox.` })
 
   } catch (error) {
     console.error("❌ TEST ROUTE: Failed.", error)
