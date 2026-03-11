@@ -51,14 +51,14 @@ interface OrderData {
 class ResendNotificationProviderService extends AbstractNotificationProviderService {
   static identifier = "notification-resend"
 
-  private resendClient: Resend
-  private from: string
-  private logger: Logger
+  private readonly apiKey: string
+  private readonly from: string
+  private readonly logger: Logger
 
   constructor({ logger }: InjectedDependencies, options: ResendOptions) {
     super()
-    this.resendClient = new Resend(options.api_key)
-    this.from = options.from
+    this.apiKey = options.api_key || ""
+    this.from = options.from || ""
     this.logger = logger
   }
 
@@ -78,10 +78,11 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
   async send(
     notification: ProviderSendNotificationDTO
   ): Promise<ProviderSendNotificationResultsDTO> {
-    if (!this.resendClient || !this.from) {
+    if (!this.apiKey || !this.from) {
       this.logger.warn("Resend: api_key or sender not configured — skipping email send.")
       return {}
     }
+    const resendClient = new Resend(this.apiKey)
 
     const { to, template, data } = notification
 
@@ -97,7 +98,7 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
 
     this.logger.info(`Sending "${template}" email to ${to}`)
 
-    const { data: result, error } = await this.resendClient.emails.send({
+    const { data: result, error } = await resendClient.emails.send({
       from: this.from,
       to: [to],
       subject,
