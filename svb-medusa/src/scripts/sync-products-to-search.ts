@@ -20,6 +20,8 @@ export default async function syncProductsToSearch({ container }: ExecArgs) {
     ContainerRegistrationKeys.QUERY
   ) as QueryGraphLike
 
+  const pgConnection = container.resolve(ContainerRegistrationKeys.PG_CONNECTION)
+
   console.log("Configuring Meilisearch index settings...")
   await configureSearchIndex()
 
@@ -46,9 +48,32 @@ export default async function syncProductsToSearch({ container }: ExecArgs) {
       break
     }
 
+    // Fetch sports_attributes for this batch in one query.
+    // The column is raw JSONB and not part of the Medusa query graph.
+    const productIds = products
+      .filter((p): p is Record<string, unknown> => !!p && typeof p === "object")
+      .map((p) => (p as Record<string, unknown>).id)
+      .filter(Boolean)
+
+    const saRows: Array<{ id: string; sports_attributes: unknown }> =
+      productIds.length
+        ? await pgConnection("product")
+            .select("id", "sports_attributes")
+            .whereIn("id", productIds as string[])
+            .whereNull("deleted_at")
+        : []
+
+    const saMap = new Map(saRows.map((r) => [r.id, r.sports_attributes]))
+
     const searchProducts = products
       .filter((p): p is Record<string, unknown> => !!p && typeof p === "object")
-      .map(buildSearchProduct)
+      .map((p) => {
+        const withSa = {
+          ...p,
+          sports_attributes: saMap.get((p as Record<string, unknown>).id as string) ?? null,
+        }
+        return buildSearchProduct(withSa)
+      })
       .filter((p) => p.id)
 
     await bulkUpsertProductsInIndex(searchProducts)
