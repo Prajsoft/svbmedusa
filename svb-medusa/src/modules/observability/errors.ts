@@ -322,9 +322,11 @@ export function toAppError(
   }
 
   const fallbackCode = fallback.code ?? "INTERNAL_ERROR"
-  const messageFromError = normalizeMessage((error as { message?: unknown }).message)
-  const fallbackMessage =
-    fallback.message ?? messageFromError ?? "An unexpected error occurred."
+  // Do NOT fall back to error.message — it may contain DB schema text or
+  // stack trace fragments. Only the caller-provided message or the generic
+  // string is used as the default. The raw message is still extracted below
+  // for known-code / Medusa-type paths where it is intentionally included.
+  const fallbackMessage = fallback.message ?? "An unexpected error occurred."
   const fallbackStatus = fallback.httpStatus ?? 500
   const fallbackCategory = fallback.category ?? "internal"
 

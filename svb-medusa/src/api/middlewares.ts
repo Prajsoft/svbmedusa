@@ -129,18 +129,25 @@ function sendApiErrorEnvelope(
 ): void {
   const appError = toAppError(error, fallback)
   const correlationId = getRequestCorrelationId(req)
-  const details = appError.details ?? {}
-  const publicMessage = formatPublicErrorMessage(appError.message, correlationId)
+
+  // Never echo internal error messages or details to clients — they may
+  // contain DB schema text, stack traces, or other implementation details.
+  const isInternal = appError.category === "internal"
+  const publicMessage = formatPublicErrorMessage(
+    isInternal ? "An unexpected error occurred." : appError.message,
+    correlationId
+  )
+  const publicDetails = isInternal ? {} : (appError.details ?? {})
 
   res.status(appError.httpStatus).json({
     code: appError.code,
     message: publicMessage,
-    details,
+    details: publicDetails,
     correlation_id: correlationId,
     error: {
       code: appError.code,
-      message: appError.message,
-      details,
+      message: publicMessage,
+      details: publicDetails,
       correlation_id: correlationId,
     },
   })

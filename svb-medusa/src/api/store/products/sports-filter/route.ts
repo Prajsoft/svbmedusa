@@ -171,11 +171,11 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       limit,
       offset,
     })
-  } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
+  } catch {
+    // correlationResponseBodyMiddleware (registered for all /store/* routes)
+    // will inject correlation_id into this response automatically.
     res.status(500).json({
       error: "Internal server error",
-      details: err.message,
     })
   }
 }
