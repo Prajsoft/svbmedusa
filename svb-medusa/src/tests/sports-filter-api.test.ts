@@ -48,7 +48,7 @@ const SEED_PAYLOAD = {
     seam_type: "Hand Stitched",
     ball_color: ["Red", "White"],
     ball_size: "Size 5 (Standard)",
-    overs_durability: "50+ overs",
+    overs_durability: "60-80",
   },
 }
 

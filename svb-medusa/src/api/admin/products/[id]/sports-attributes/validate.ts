@@ -6,6 +6,7 @@ import {
   BEST_FOR_OPTIONS,
   PROTECTION_LEVELS,
   BALL_GRADES,
+  OVERS_DURABILITY,
   EquipmentType,
   EQUIPMENT_TYPES,
 } from "../../../../../types/sports-attributes"
@@ -205,10 +206,8 @@ export function validateSportsAttributes(body: unknown): ValidationResult {
       }
 
       // overs_durability
-      if (typeof s.overs_durability !== "string") {
-        errors["sport_specific.overs_durability"] = "Must be a string"
-      } else if ((s.overs_durability as string).length > 200) {
-        errors["sport_specific.overs_durability"] = "Must be a string under 200 characters"
+      if (s.overs_durability !== "" && !(OVERS_DURABILITY as readonly string[]).includes(String(s.overs_durability))) {
+        errors["sport_specific.overs_durability"] = `Must be one of: ${OVERS_DURABILITY.join(", ")}`
       }
     }
   }

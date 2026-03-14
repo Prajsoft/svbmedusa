@@ -26,6 +26,7 @@ import {
   BALL_GRADES,
   BALL_SIZES,
   BALL_TYPES,
+  OVERS_DURABILITY,
   BAG_MATERIALS,
   BAG_TYPES,
   BASKETBALL_BALL_MATERIALS,
@@ -609,8 +610,16 @@ const SportsAttributesWidget = ({ data }: DetailWidgetProps<{ id: string }>) => 
               <ColorChips values={s.ball_color} onChange={(v) => updateSpecific("ball_color", v)} disabled={saving} />
             </FieldRow>
             <FieldRow label="Overs Durability">
-              <Input placeholder="e.g. 30–35 overs, 50+ overs" value={s.overs_durability}
-                onChange={(e) => updateSpecific("overs_durability", e.target.value)} disabled={saving} />
+              <Select value={s.overs_durability || ""} onValueChange={(v) => updateSpecific("overs_durability", v)} disabled={saving}>
+                <Select.Trigger><Select.Value placeholder="Select durability..." /></Select.Trigger>
+                <Select.Content>
+                  <Select.Item value="casual">Casual / Backyard</Select.Item>
+                  <Select.Item value="1-10">1–10 Overs (Tennis/Rubber)</Select.Item>
+                  <Select.Item value="20-30">20–30 Overs (Club Practice)</Select.Item>
+                  <Select.Item value="40-50">40–50 Overs (Club Match)</Select.Item>
+                  <Select.Item value="60-80">60–80 Overs (Professional Match)</Select.Item>
+                </Select.Content>
+              </Select>
             </FieldRow>
           </Section>
         )

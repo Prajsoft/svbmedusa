@@ -121,6 +121,14 @@ export const BALL_TYPES = [
 
 export const BALL_GRADES = ["Match", "Practice", "Training", "Club"] as const
 
+export const OVERS_DURABILITY = [
+  "casual",
+  "1-10",
+  "20-30",
+  "40-50",
+  "60-80",
+] as const
+
 export const SEAM_TYPES = [
   "Machine Stitched",
   "Hand Stitched",
@@ -439,8 +447,7 @@ export interface BallAttributes {
   seam_type: string
   ball_color: string[]
   ball_size: string
-  /** Free text. E.g. "30–35 overs", "50+ overs". */
-  overs_durability: string
+  overs_durability: typeof OVERS_DURABILITY[number] | ""
 }
 
 export interface BatAttributes {

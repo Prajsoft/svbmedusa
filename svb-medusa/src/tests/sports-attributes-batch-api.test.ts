@@ -49,7 +49,7 @@ const VALID_ATTRS = {
     seam_type: "Hand Stitched",
     ball_color: ["Red"],
     ball_size: "Size 5 (Standard)",
-    overs_durability: "50+ overs",
+    overs_durability: "60-80",
   },
 }
 
