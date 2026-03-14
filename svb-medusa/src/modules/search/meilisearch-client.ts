@@ -90,6 +90,7 @@ const SA_FILTERABLE = [
   "sa_ball_grade",
   "sa_ball_color",
   "sa_ball_size",
+  "sa_overs_durability",
   "sa_seam_type",
   // ── Cricket: Bat ──────────────────────────────────────────────────────────
   "sa_wood_type",
