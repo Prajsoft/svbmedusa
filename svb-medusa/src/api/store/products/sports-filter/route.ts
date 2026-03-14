@@ -37,6 +37,25 @@ function parseOffset(value: unknown): number {
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   try {
     const q = req.query as Record<string, unknown>
+    const pgConnection = req.scope.resolve(ContainerRegistrationKeys.PG_CONNECTION)
+
+    // ── Distinct sports shortcut ────────────────────────────────────────────
+    // ?distinct_sports=1 returns the sorted list of sport values that have at
+    // least one published product.  Used by the storefront's sport-pill filter
+    // to avoid a full catalog scan.
+    if (q.distinct_sports === "1") {
+      const rows = await pgConnection("product")
+        .whereNull("deleted_at")
+        .where("status", "published")
+        .whereNotNull("sports_attributes")
+        .whereRaw("sports_attributes->>'sport' IS NOT NULL")
+        .select(pgConnection.raw("DISTINCT sports_attributes->>'sport' as sport"))
+      const sports = rows
+        .map((r: { sport: string }) => r.sport)
+        .filter(Boolean)
+        .sort()
+      return res.status(200).json({ sports })
+    }
 
     // ── Pagination ─────────────────────────────────────────────────────────
     const limit = parseLimit(q.limit)
@@ -103,10 +122,9 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     const hasFilters = Object.keys(containment).length > 0
 
     // ── Query ──────────────────────────────────────────────────────────────
-    const pgConnection = req.scope.resolve(ContainerRegistrationKeys.PG_CONNECTION)
-
     let baseQuery = pgConnection("product")
       .whereNull("deleted_at")
+      .where("status", "published")
       .select("id", "title", "handle", "thumbnail", "sports_attributes")
 
     if (hasFilters) {
@@ -128,6 +146,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     // Count total matching rows (before pagination)
     const countQuery = pgConnection("product")
       .whereNull("deleted_at")
+      .where("status", "published")
       .whereNotNull("sports_attributes")
 
     if (hasFilters) {

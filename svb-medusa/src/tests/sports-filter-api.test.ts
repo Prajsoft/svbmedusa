@@ -63,8 +63,10 @@ suite(
       // API tests ran first.
       if (DB_URL && PRODUCT_ID) {
         pool = new Pool({ connectionString: DB_URL })
+        // Set sports_attributes and ensure status = 'published' so the route
+        // returns the product (the route now filters status = 'published').
         await pool.query(
-          `UPDATE product SET sports_attributes = $1::jsonb WHERE id = $2`,
+          `UPDATE product SET sports_attributes = $1::jsonb, status = 'published' WHERE id = $2`,
           [JSON.stringify(SEED_PAYLOAD), PRODUCT_ID]
         )
       }
@@ -189,6 +191,23 @@ suite(
 
       expect(res.status).toBe(200)
       expect(res.body.limit).toBe(20)
+    })
+
+    // ── Test 9 — distinct_sports returns unique published sport names ─────────
+    it("distinct_sports=1 returns a sorted array of published sport names", async () => {
+      const res = await request(BACKEND_URL)
+        .get("/store/products/sports-filter")
+        .set("x-publishable-api-key", PUB_KEY!)
+        .query({ distinct_sports: "1" })
+
+      expect(res.status).toBe(200)
+      expect(res.body).toHaveProperty("sports")
+      expect(Array.isArray(res.body.sports)).toBe(true)
+      // The seeded product has sport = "Cricket"
+      expect(res.body.sports).toContain("Cricket")
+      // Should be sorted alphabetically
+      const sorted = [...res.body.sports].sort()
+      expect(res.body.sports).toEqual(sorted)
     })
   }
 )
