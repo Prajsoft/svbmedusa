@@ -8,7 +8,31 @@ on:
       - 'svb-medusa/**'
 
 jobs:
+  test:
+    name: Medusa unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: svb-medusa
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+          cache-dependency-path: svb-medusa/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Run unit tests
+        run: yarn test:unit
+
   deploy:
+    name: Deploy to Hetzner
+    needs: [test]
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to Hetzner

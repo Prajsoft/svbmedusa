@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Medusa backend unit tests ────────────────────────────────────────────────
+  test-medusa:
+    name: Medusa unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: svb-medusa
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+          cache-dependency-path: svb-medusa/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Run unit tests
+        run: yarn test:unit
+
+  # ── Storefront unit tests ────────────────────────────────────────────────────
+  test-storefront:
+    name: Storefront unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout svb-storefront
+        uses: actions/checkout@v4
+        with:
+          repository: Prajsoft/svb-storefront
+          token: ${{ secrets.GH_PAT }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Run unit tests
+        run: yarn test
+
+  # ── Payload CMS integration tests ───────────────────────────────────────────
+  test-payload-int:
+    name: Payload integration tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: payload-cms
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: payload_test
+          POSTGRES_USER: payload
+          POSTGRES_PASSWORD: payload
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URI: postgresql://payload:payload@localhost:5432/payload_test
+      PAYLOAD_SECRET: ci-test-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run integration tests
+        run: pnpm test:int
