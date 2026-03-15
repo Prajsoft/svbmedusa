@@ -6,9 +6,10 @@ describe("medusa-config shipping guardrails", () => {
   beforeEach(() => {
     process.env = { ...originalEnv }
     process.env.ENABLE_RAZORPAY = "false"
-    delete process.env.RAZORPAY_KEY_ID
-    delete process.env.RAZORPAY_KEY_SECRET
-    delete process.env.RAZORPAY_WEBHOOK_SECRET
+    process.env.RAZORPAY_KEY_ID = ""
+    process.env.RAZORPAY_KEY_SECRET = ""
+    process.env.RAZORPAY_WEBHOOK_SECRET = ""
+    process.env.PAYMENT_PROVIDER_DEFAULT = ""
     consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined)
     consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => undefined)
   })
@@ -31,11 +32,11 @@ describe("medusa-config shipping guardrails", () => {
 
   it("fails fast when SHIPPING_PROVIDER_DEFAULT=shiprocket and credentials are missing", () => {
     process.env.SHIPPING_PROVIDER_DEFAULT = "shiprocket"
-    delete process.env.SHIPROCKET_TOKEN
-    delete process.env.SHIPROCKET_SELLER_EMAIL
-    delete process.env.SHIPROCKET_SELLER_PASSWORD
-    delete process.env.SHIPROCKET_EMAIL
-    delete process.env.SHIPROCKET_PASSWORD
+    process.env.SHIPROCKET_TOKEN = ""
+    process.env.SHIPROCKET_SELLER_EMAIL = ""
+    process.env.SHIPROCKET_SELLER_PASSWORD = ""
+    process.env.SHIPROCKET_EMAIL = ""
+    process.env.SHIPROCKET_PASSWORD = ""
 
     expect(() => bootMedusaConfig()).toThrow("PROVIDER_CONFIG_MISSING")
     expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -49,11 +50,11 @@ describe("medusa-config shipping guardrails", () => {
   it("fails fast when CARRIER_ADAPTER=shiprocket and credentials are missing", () => {
     process.env.SHIPPING_PROVIDER_DEFAULT = "fake"
     process.env.CARRIER_ADAPTER = "shiprocket"
-    delete process.env.SHIPROCKET_TOKEN
-    delete process.env.SHIPROCKET_SELLER_EMAIL
-    delete process.env.SHIPROCKET_SELLER_PASSWORD
-    delete process.env.SHIPROCKET_EMAIL
-    delete process.env.SHIPROCKET_PASSWORD
+    process.env.SHIPROCKET_TOKEN = ""
+    process.env.SHIPROCKET_SELLER_EMAIL = ""
+    process.env.SHIPROCKET_SELLER_PASSWORD = ""
+    process.env.SHIPROCKET_EMAIL = ""
+    process.env.SHIPROCKET_PASSWORD = ""
 
     expect(() => bootMedusaConfig()).toThrow("PROVIDER_CONFIG_MISSING")
     expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -82,7 +83,7 @@ describe("medusa-config shipping guardrails", () => {
     process.env.SHIPROCKET_SELLER_EMAIL = "ops@svb.test"
     process.env.SHIPROCKET_SELLER_PASSWORD = "password_123"
     process.env.ALLOW_UNSIGNED_WEBHOOKS = "false"
-    delete process.env.SHIPROCKET_WEBHOOK_TOKEN
+    process.env.SHIPROCKET_WEBHOOK_TOKEN = ""
 
     expect(() => bootMedusaConfig()).toThrow("PROVIDER_CONFIG_MISSING")
     expect(consoleErrorSpy).toHaveBeenCalledWith(

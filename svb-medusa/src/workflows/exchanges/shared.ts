@@ -1,5 +1,5 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { OutOfStockError, WAREHOUSE_NAME } from "../../modules/inventory/check-availability"
+import { OutOfStockError, WAREHOUSE_LOCATION_ID, WAREHOUSE_NAME } from "../../modules/inventory/check-availability"
 import { emitBusinessEvent } from "../../modules/logging/business-events"
 import {
   assertReturnReasonCode,
@@ -152,6 +152,12 @@ function toPositiveInt(value: unknown): number {
   const parsed = Math.floor(toNumber(value))
   return parsed > 0 ? parsed : 0
 }
+
+// Bucket location IDs — read at module load from env vars.
+// When all three are set, resolveBucketLocationIds() skips the DB round-trip.
+// SVB_SELLABLE_LOCATION_ID is shared with check-availability.ts (same constant).
+const QC_HOLD_LOCATION_ID = process.env.SVB_QC_HOLD_LOCATION_ID?.trim() || ""
+const EXCHANGE_HOLD_LOCATION_ID = process.env.SVB_EXCHANGE_HOLD_LOCATION_ID?.trim() || ""
 
 function normalizeBucketName(value: unknown): string {
   return String(value ?? "").trim().toUpperCase()
@@ -567,6 +573,19 @@ async function resolveBucketLocationIds(scope: ScopeLike): Promise<{
   qc_hold_location_id: string
   exchange_hold_location_id: string
 }> {
+  // Fast path: when all IDs are pinned via env vars, skip the DB round-trip.
+  // This decouples runtime behaviour from stock-location display names.
+  if (WAREHOUSE_LOCATION_ID && QC_HOLD_LOCATION_ID && EXCHANGE_HOLD_LOCATION_ID) {
+    return {
+      sellable_location_id: WAREHOUSE_LOCATION_ID,
+      qc_hold_location_id: QC_HOLD_LOCATION_ID,
+      exchange_hold_location_id: EXCHANGE_HOLD_LOCATION_ID,
+    }
+  }
+
+  // Slow path: resolve by stock-location name (requires a DB round-trip).
+  // Set SVB_QC_HOLD_LOCATION_ID and SVB_EXCHANGE_HOLD_LOCATION_ID in production
+  // to use the fast path and avoid coupling to location display names.
   const query = scope.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "stock_location",

@@ -1,5 +1,5 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { WAREHOUSE_NAME } from "../../modules/inventory/check-availability"
+import { WAREHOUSE_LOCATION_ID, WAREHOUSE_NAME } from "../../modules/inventory/check-availability"
 import { emitBusinessEvent } from "../../modules/logging/business-events"
 
 export type ScopeLike = {
@@ -235,6 +235,12 @@ export function assertReturnReasonCode(value: string): asserts value is ReturnRe
     )
   }
 }
+
+// Bucket location IDs — read at module load from env vars.
+// When all three are set, resolveBucketLocationIds() skips the DB round-trip.
+// SVB_SELLABLE_LOCATION_ID is shared with check-availability.ts (same constant).
+const QC_HOLD_LOCATION_ID = process.env.SVB_QC_HOLD_LOCATION_ID?.trim() || ""
+const DAMAGE_LOCATION_ID = process.env.SVB_DAMAGE_LOCATION_ID?.trim() || ""
 
 function getSellableBucketCode(): string {
   return process.env.SVB_SELLABLE_LOCATION_CODE?.trim() || WAREHOUSE_NAME
@@ -712,6 +718,19 @@ async function resolveBucketLocationIds(scope: ScopeLike): Promise<{
   qc_hold_location_id: string
   damage_location_id: string
 }> {
+  // Fast path: when all IDs are pinned via env vars, skip the DB round-trip.
+  // This decouples runtime behaviour from stock-location display names.
+  if (WAREHOUSE_LOCATION_ID && QC_HOLD_LOCATION_ID && DAMAGE_LOCATION_ID) {
+    return {
+      sellable_location_id: WAREHOUSE_LOCATION_ID,
+      qc_hold_location_id: QC_HOLD_LOCATION_ID,
+      damage_location_id: DAMAGE_LOCATION_ID,
+    }
+  }
+
+  // Slow path: resolve by stock-location name (requires a DB round-trip).
+  // Set SVB_QC_HOLD_LOCATION_ID and SVB_DAMAGE_LOCATION_ID in production
+  // to use the fast path and avoid coupling to location display names.
   const query = scope.resolve(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "stock_location",

@@ -1,4 +1,4 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { MedusaStoreRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 // ── Sanitize ──────────────────────────────────────────────────────────────────
@@ -34,22 +34,40 @@ function parseOffset(value: unknown): number {
 
 // ── GET /store/products/sports-filter ────────────────────────────────────────
 
-export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
+export const GET = async (req: MedusaStoreRequest, res: MedusaResponse) => {
   try {
     const q = req.query as Record<string, unknown>
     const pgConnection = req.scope.resolve(ContainerRegistrationKeys.PG_CONNECTION)
 
+    // Scope queries to the sales channels associated with this publishable API key.
+    // Prevents products that are published but not linked to the storefront's channel
+    // from appearing in sport-pill counts or search results.
+    const salesChannelIds = req.publishable_key_context.sales_channel_ids
+
+    // Mutates and returns the query builder — safe because Knex builders are fluent.
+    function withSalesChannelScope<T>(query: T): T {
+      if (salesChannelIds.length === 0) return query
+      return (query as any).whereExists(
+        pgConnection("product_sales_channel")
+          .select(pgConnection.raw("1"))
+          .whereRaw('"product_sales_channel"."product_id" = "product"."id"')
+          .whereIn("sales_channel_id", salesChannelIds)
+      ) as T
+    }
+
     // ── Distinct sports shortcut ────────────────────────────────────────────
     // ?distinct_sports=1 returns the sorted list of sport values that have at
-    // least one published product.  Used by the storefront's sport-pill filter
-    // to avoid a full catalog scan.
+    // least one published product in the current sales channel.  Used by the
+    // storefront's sport-pill filter to avoid a full catalog scan.
     if (q.distinct_sports === "1") {
-      const rows = await pgConnection("product")
-        .whereNull("deleted_at")
-        .where("status", "published")
-        .whereNotNull("sports_attributes")
-        .whereRaw("sports_attributes->>'sport' IS NOT NULL")
-        .select(pgConnection.raw("DISTINCT sports_attributes->>'sport' as sport"))
+      const rows = await withSalesChannelScope(
+        pgConnection("product")
+          .whereNull("deleted_at")
+          .where("status", "published")
+          .whereNotNull("sports_attributes")
+          .whereRaw("sports_attributes->>'sport' IS NOT NULL")
+          .select(pgConnection.raw("DISTINCT sports_attributes->>'sport' as sport"))
+      )
       const sports = rows
         .map((r: { sport: string }) => r.sport)
         .filter(Boolean)
@@ -122,10 +140,12 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     const hasFilters = Object.keys(containment).length > 0
 
     // ── Query ──────────────────────────────────────────────────────────────
-    let baseQuery = pgConnection("product")
-      .whereNull("deleted_at")
-      .where("status", "published")
-      .select("id", "title", "handle", "thumbnail", "sports_attributes")
+    let baseQuery = withSalesChannelScope(
+      pgConnection("product")
+        .whereNull("deleted_at")
+        .where("status", "published")
+        .select("id", "title", "handle", "thumbnail", "sports_attributes")
+    )
 
     if (hasFilters) {
       // Parameterised @> containment — user input never concatenated into SQL
@@ -144,10 +164,12 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     }
 
     // Count total matching rows (before pagination)
-    const countQuery = pgConnection("product")
-      .whereNull("deleted_at")
-      .where("status", "published")
-      .whereNotNull("sports_attributes")
+    const countQuery = withSalesChannelScope(
+      pgConnection("product")
+        .whereNull("deleted_at")
+        .where("status", "published")
+        .whereNotNull("sports_attributes")
+    )
 
     if (hasFilters) {
       countQuery.whereRaw(

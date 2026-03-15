@@ -4,7 +4,7 @@ describe("medusa-config Razorpay guardrails", () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv }
-    delete process.env.PAYMENT_PROVIDER_DEFAULT
+    process.env.PAYMENT_PROVIDER_DEFAULT = ""
     consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined)
   })
 
@@ -26,7 +26,7 @@ describe("medusa-config Razorpay guardrails", () => {
   it("logs structured config invalid event and throws on missing key id", () => {
     process.env.PAYMENTS_MODE = "test"
     process.env.ENABLE_RAZORPAY = "true"
-    delete process.env.RAZORPAY_KEY_ID
+    process.env.RAZORPAY_KEY_ID = ""
     process.env.RAZORPAY_KEY_SECRET = "secret"
 
     expect(() => bootMedusaConfig()).toThrow("RAZORPAY_CONFIG_MISSING")
@@ -74,7 +74,7 @@ describe("medusa-config Razorpay guardrails", () => {
     process.env.ENABLE_RAZORPAY = "true"
     process.env.RAZORPAY_KEY_ID = "rzp_live_123"
     process.env.RAZORPAY_KEY_SECRET = "secret"
-    delete process.env.RAZORPAY_WEBHOOK_SECRET
+    process.env.RAZORPAY_WEBHOOK_SECRET = ""
 
     expect(() => bootMedusaConfig()).toThrow("RAZORPAY_CONFIG_MISSING")
     expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -129,6 +129,8 @@ describe("medusa-config Razorpay guardrails", () => {
       )
     })
 
+    jest.dontMock("../../src/modules/payment-razorpay/provider-registration")
+
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         event: "RAZORPAY_PROVIDER_REGISTRATION_FAILED",
@@ -139,9 +141,9 @@ describe("medusa-config Razorpay guardrails", () => {
   it("crashes boot when PAYMENT_PROVIDER_DEFAULT points to an unregistered provider", () => {
     process.env.PAYMENTS_MODE = "test"
     process.env.ENABLE_RAZORPAY = "false"
-    delete process.env.RAZORPAY_KEY_ID
-    delete process.env.RAZORPAY_KEY_SECRET
-    delete process.env.RAZORPAY_WEBHOOK_SECRET
+    process.env.RAZORPAY_KEY_ID = ""
+    process.env.RAZORPAY_KEY_SECRET = ""
+    process.env.RAZORPAY_WEBHOOK_SECRET = ""
     process.env.PAYMENT_PROVIDER_DEFAULT = "razorpay"
 
     expect(() => bootMedusaConfig()).toThrow("PAYMENT_PROVIDER_DEFAULT_INVALID")
@@ -173,10 +175,10 @@ describe("medusa-config Razorpay guardrails", () => {
     process.env.COOKIE_SECRET = "cookie_secret_prod_very_strong_1"
     delete process.env.SHIPPING_PROVIDER_DEFAULT
     delete process.env.CARRIER_ADAPTER
-    delete process.env.ENABLE_RAZORPAY
-    delete process.env.RAZORPAY_KEY_ID
-    delete process.env.RAZORPAY_KEY_SECRET
-    delete process.env.RAZORPAY_WEBHOOK_SECRET
+    process.env.ENABLE_RAZORPAY = "false"
+    process.env.RAZORPAY_KEY_ID = ""
+    process.env.RAZORPAY_KEY_SECRET = ""
+    process.env.RAZORPAY_WEBHOOK_SECRET = ""
 
     expect(() => bootMedusaConfig()).not.toThrow()
   })

@@ -58,7 +58,7 @@ function makeHarness() {
   }
 
   const stockLocations = [
-    { id: "loc_sellable", name: "WH-MRT-01" },
+    { id: "loc_sellable", name: "Meerut" },
     { id: "loc_qc_hold", name: "QC_HOLD" },
     { id: "loc_damage", name: "DAMAGE" },
   ]

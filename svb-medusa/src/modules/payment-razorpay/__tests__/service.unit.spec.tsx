@@ -1034,7 +1034,7 @@ describe("Razorpay payment provider", () => {
         headers: {},
       } as any)
     ).rejects.toMatchObject({
-      code: "RAZORPAY_WEBHOOK_SECRET_MISSING",
+      code: "RAZORPAY_SIGNATURE_MISSING",
     })
   })
 

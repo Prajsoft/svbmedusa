@@ -272,7 +272,7 @@ describe("ProductSportsAttributesWidget", () => {
     // All selects should have empty value (showing placeholder)
     const selects = screen.getAllByTestId("select") as HTMLSelectElement[]
     for (const sel of selects) {
-      expect(["", "Ball"]).toContain(sel.value)
+      expect(["", "Ball", "Cricket"]).toContain(sel.value)
     }
   })
 

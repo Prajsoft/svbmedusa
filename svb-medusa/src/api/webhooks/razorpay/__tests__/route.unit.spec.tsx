@@ -101,6 +101,7 @@ function makeReq(input?: {
           currency_code: "INR",
           data: {
             payment_status: "PENDING",
+            order_id: "order_route_1",
           },
         },
       ],

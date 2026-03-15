@@ -28,4 +28,12 @@ if (process.env.TEST_TYPE === "integration:http") {
     "**/src/**/__tests__/**/*.unit.spec.[jt]s?(x)",
     "**/src/**/*.test.[jt]s?(x)",
   ];
+  // Exclude backend API integration tests that require a live DB and server.
+  // Run them with TEST_TYPE=integration:http when the stack is up.
+  module.exports.testPathIgnorePatterns = [
+    ...(module.exports.testPathIgnorePatterns ?? []),
+    "<rootDir>/src/tests/sports-attributes-api.test.ts",
+    "<rootDir>/src/tests/sports-attributes-batch-api.test.ts",
+    "<rootDir>/src/tests/sports-filter-api.test.ts",
+  ];
 }

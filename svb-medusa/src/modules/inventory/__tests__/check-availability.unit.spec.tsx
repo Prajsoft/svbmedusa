@@ -59,10 +59,10 @@ function baseVariant() {
         inventory: {
           location_levels: [
             {
-              location_id: "sloc_1",
+              location_id: "sloc_01KCERJASXFVS068SBRPKKST0W",
               stock_locations: {
-                id: "sloc_1",
-                name: "WH-MRT-01",
+                id: "sloc_01KCERJASXFVS068SBRPKKST0W",
+                name: "Meerut",
                 sales_channels: [{ id: "sc_1" }],
               },
             },
@@ -89,7 +89,7 @@ describe("no-backorders availability checks", () => {
       checkAvailabilityForAddToCart(scope, "cart_1", "variant_1", 1)
     ).rejects.toMatchObject<Partial<OutOfStockError>>({
       code: "OUT_OF_STOCK",
-      message: "Insufficient inventory for SKU SVB-CRB-SWFP-WHT-P01 at WH-MRT-01",
+      message: "Insufficient inventory for SKU SVB-CRB-SWFP-WHT-P01 at Meerut",
     })
   })
 
@@ -114,7 +114,7 @@ describe("no-backorders availability checks", () => {
       checkAvailabilityForUpdateCartLineItem(scope, "cart_1", "line_1", 3)
     ).rejects.toMatchObject<Partial<OutOfStockError>>({
       code: "OUT_OF_STOCK",
-      message: "Insufficient inventory for SKU SVB-CRB-SWFP-WHT-P01 at WH-MRT-01",
+      message: "Insufficient inventory for SKU SVB-CRB-SWFP-WHT-P01 at Meerut",
     })
   })
 

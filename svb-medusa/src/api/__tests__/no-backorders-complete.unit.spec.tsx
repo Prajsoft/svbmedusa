@@ -32,10 +32,10 @@ describe("no-backorders final gate on cart completion", () => {
                     inventory: {
                       location_levels: [
                         {
-                          location_id: "sloc_1",
+                          location_id: "sloc_01KCERJASXFVS068SBRPKKST0W",
                           stock_locations: {
-                            id: "sloc_1",
-                            name: "WH-MRT-01",
+                            id: "sloc_01KCERJASXFVS068SBRPKKST0W",
+                            name: "Meerut",
                             sales_channels: [{ id: "sc_1" }],
                           },
                         },
@@ -114,7 +114,7 @@ describe("no-backorders final gate on cart completion", () => {
         correlation_id: expect.any(String),
         error: {
           code: "OUT_OF_STOCK",
-          message: "Insufficient inventory for SKU SVB-CRB-SWFP-WHT-P01 at WH-MRT-01",
+          message: "Insufficient inventory for SKU SVB-CRB-SWFP-WHT-P01 at Meerut",
           details: {},
           correlation_id: expect.any(String),
         },

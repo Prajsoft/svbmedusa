@@ -44,7 +44,7 @@ describe("resolveShipmentLabel", () => {
         status: "BOOKED",
         label_url: "https://labels.example/existing.pdf",
         label_generated_at: new Date("2026-02-18T12:00:00.000Z"),
-        label_expires_at: new Date("2026-02-22T12:00:00.000Z"),
+        label_expires_at: new Date("2027-12-31T12:00:00.000Z"),
         label_status: ShipmentLabelStatus.AVAILABLE,
       })),
       markShipmentBookedFromProvider: jest.fn(async (input) => ({

@@ -133,10 +133,14 @@ function sendApiErrorEnvelope(
   // Never echo internal error messages or details to clients — they may
   // contain DB schema text, stack traces, or other implementation details.
   const isInternal = appError.category === "internal"
-  const publicMessage = formatPublicErrorMessage(
-    isInternal ? "An unexpected error occurred." : appError.message,
-    correlationId
-  )
+  // safeMessage: the message we are willing to show publicly (without correlation ID).
+  // For internal errors this is always the generic string; for structured errors
+  // (validation, integrity, etc.) it is the intentional error message.
+  const safeMessage = isInternal
+    ? "An unexpected error occurred."
+    : appError.message
+  // publicMessage: safeMessage with "Support Code: <correlationId>" appended.
+  const publicMessage = formatPublicErrorMessage(safeMessage, correlationId)
   const publicDetails = isInternal ? {} : (appError.details ?? {})
 
   res.status(appError.httpStatus).json({
@@ -146,7 +150,9 @@ function sendApiErrorEnvelope(
     correlation_id: correlationId,
     error: {
       code: appError.code,
-      message: publicMessage,
+      // error.message intentionally omits the support code suffix so callers
+      // can use it for machine-readable matching without the trailing noise.
+      message: safeMessage,
       details: publicDetails,
       correlation_id: correlationId,
     },
