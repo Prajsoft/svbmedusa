@@ -144,6 +144,21 @@ async function getVariant(scope: ScopeLike, variantId: string): Promise<VariantL
   return variant
 }
 
+/**
+ * Returns true when the given location matches the configured warehouse.
+ * Matches by ID when SVB_SELLABLE_LOCATION_ID is set; falls back to name
+ * match (WAREHOUSE_NAME) when the env var is not configured.
+ */
+function isWarehouseLocation(
+  id: string | null | undefined,
+  name: string | null | undefined
+): boolean {
+  if (WAREHOUSE_LOCATION_ID) {
+    return id === WAREHOUSE_LOCATION_ID
+  }
+  return (name?.trim() ?? "") === WAREHOUSE_NAME
+}
+
 function getWarehouseLocationId(
   variant: VariantLike,
   salesChannelId?: string | null
@@ -158,8 +173,10 @@ function getWarehouseLocationId(
           : []) || []
 
       // Some graph payloads expose only location_id without expanded stock location.
+      // Name-based fallback is not possible here, so only match when the explicit
+      // location ID is configured.
       if (!rawLocations.length) {
-        if (level.location_id === WAREHOUSE_LOCATION_ID) {
+        if (WAREHOUSE_LOCATION_ID && level.location_id === WAREHOUSE_LOCATION_ID) {
           return level.location_id
         }
         continue
@@ -167,7 +184,7 @@ function getWarehouseLocationId(
 
       for (const stockLocation of rawLocations) {
         const resolvedLocationId = stockLocation?.id ?? level.location_id ?? undefined
-        if (!resolvedLocationId || resolvedLocationId !== WAREHOUSE_LOCATION_ID) {
+        if (!resolvedLocationId || !isWarehouseLocation(resolvedLocationId, stockLocation?.name)) {
           continue
         }
 

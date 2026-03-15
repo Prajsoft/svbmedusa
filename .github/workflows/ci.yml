@@ -50,6 +50,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'yarn'
+          cache-dependency-path: yarn.lock
 
       - name: Install dependencies
         run: yarn install --immutable
@@ -81,7 +82,7 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URI: postgresql://payload:payload@localhost:5432/payload_test
+      DATABASE_URL: postgresql://payload:payload@localhost:5432/payload_test
       PAYLOAD_SECRET: ci-test-secret
 
     steps:
@@ -125,7 +126,7 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URI: postgresql://payload:payload@localhost:5432/payload_e2e
+      DATABASE_URL: postgresql://payload:payload@localhost:5432/payload_e2e
       PAYLOAD_SECRET: ci-e2e-secret
 
     steps:
