@@ -14,6 +14,10 @@ import {
   shouldLogWebhookSecurityDegradedOnBoot,
   validateShippingProviderConfig,
 } from "./src/integrations/carriers/config"
+import {
+  InventoryLocationConfigError,
+  validateInventoryLocationConfig,
+} from "./src/modules/inventory/location-config"
 
 // Only load .env in development (not in Railway/Render)
 
@@ -205,6 +209,17 @@ try {
     reason,
   })
 
+  throw error
+}
+
+try {
+  validateInventoryLocationConfig(process.env)
+} catch (error) {
+  const reason =
+    error instanceof InventoryLocationConfigError
+      ? error.reason
+      : "Unknown inventory location config error."
+  console.error({ event: "INVENTORY_LOCATION_CONFIG_INVALID", reason })
   throw error
 }
 

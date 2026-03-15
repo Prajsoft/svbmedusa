@@ -5,8 +5,7 @@ export const WAREHOUSE_NAME =
   process.env.SVB_SELLABLE_LOCATION_NAME?.trim() || "Meerut"
 
 export const WAREHOUSE_LOCATION_ID =
-  process.env.SVB_SELLABLE_LOCATION_ID?.trim() ||
-  "sloc_01KCERJASXFVS068SBRPKKST0W"
+  process.env.SVB_SELLABLE_LOCATION_ID?.trim() || ""
 
 type ScopeLike = {
   resolve: (key: string) => any
