@@ -100,3 +100,50 @@ jobs:
 
       - name: Run integration tests
         run: pnpm test:int
+
+  # ── Payload CMS e2e tests (blog publishing smoke) ───────────────────────────
+  test-payload-e2e:
+    name: Payload e2e (blog smoke)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: payload-cms
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: payload_e2e
+          POSTGRES_USER: payload
+          POSTGRES_PASSWORD: payload
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URI: postgresql://payload:payload@localhost:5432/payload_e2e
+      PAYLOAD_SECRET: ci-e2e-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium --with-deps
+
+      - name: Run blog e2e tests
+        run: pnpm test:e2e
