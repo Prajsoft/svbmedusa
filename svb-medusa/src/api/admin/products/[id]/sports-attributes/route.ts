@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { toApiErrorResponse } from "../../../../../modules/observability/errors"
 import { validateSportsAttributes } from "./validate"
 import { normalizeSportsAttributes } from "./normalize"
 import { setSportsAttributesWorkflow } from "../../../../../workflows/set-sports-attributes"
@@ -28,11 +29,8 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       sports_attributes: normalized ?? null,
     })
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
-    res.status(500).json({
-      error: "Internal server error",
-      details: err.message,
-    })
+    const mapped = toApiErrorResponse(error)
+    res.status(mapped.status).json(mapped.body)
   }
 }
 
@@ -62,15 +60,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       sports_attributes: result.sports_attributes,
     })
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
-    // The workflow step throws when the product is not found
-    if (err.message.includes("not found")) {
-      res.status(404).json({ error: "Product not found" })
-      return
-    }
-    res.status(500).json({
-      error: "Internal server error",
-      details: err.message,
-    })
+    const mapped = toApiErrorResponse(error)
+    res.status(mapped.status).json(mapped.body)
   }
 }

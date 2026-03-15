@@ -56,10 +56,6 @@ export async function GET(
 
   } catch (error) {
     console.error("❌ TEST ROUTE: Failed.", error)
-    res.status(500).json({ 
-      message: "Error sending email", 
-      error: error.message,
-      stack: error.stack 
-    })
+    res.status(500).json({ code: "EMAIL_ERROR", message: "Unable to send test email." })
   }
 }

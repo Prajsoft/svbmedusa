@@ -1,5 +1,6 @@
 import type { MedusaStoreRequest, MedusaResponse } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { toApiErrorResponse } from "../../../../modules/observability/errors"
 
 // ── Sanitize ──────────────────────────────────────────────────────────────────
 // Strip everything except alphanumeric chars, spaces, hyphens, parentheses and
@@ -193,11 +194,8 @@ export const GET = async (req: MedusaStoreRequest, res: MedusaResponse) => {
       limit,
       offset,
     })
-  } catch {
-    // correlationResponseBodyMiddleware (registered for all /store/* routes)
-    // will inject correlation_id into this response automatically.
-    res.status(500).json({
-      error: "Internal server error",
-    })
+  } catch (error) {
+    const mapped = toApiErrorResponse(error)
+    res.status(mapped.status).json(mapped.body)
   }
 }

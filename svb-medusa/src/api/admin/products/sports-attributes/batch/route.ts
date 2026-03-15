@@ -2,6 +2,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { validateSportsAttributes } from "../../[id]/sports-attributes/validate"
 import { normalizeSportsAttributes } from "../../[id]/sports-attributes/normalize"
 import { batchSetSportsAttributesWorkflow } from "../../../../../workflows/set-sports-attributes"
+import { toApiErrorResponse } from "../../../../../modules/observability/errors"
 
 // ── Limits ────────────────────────────────────────────────────────────────────
 const MAX_BATCH_SIZE = 200
@@ -114,10 +115,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
       not_found: result.not_found,
     })
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
-    res.status(500).json({
-      error: "Internal server error",
-      details: err.message,
-    })
+    const mapped = toApiErrorResponse(error)
+    res.status(mapped.status).json(mapped.body)
   }
 }
