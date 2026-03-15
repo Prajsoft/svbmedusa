@@ -88,6 +88,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Checkout payload-cms
+        uses: actions/checkout@v4
+        with:
+          repository: Prajsoft/payload-cms
+          token: ${{ secrets.GH_PAT }}
+          path: payload-cms
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -131,6 +138,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Checkout payload-cms
+        uses: actions/checkout@v4
+        with:
+          repository: Prajsoft/payload-cms
+          token: ${{ secrets.GH_PAT }}
+          path: payload-cms
 
       - uses: actions/setup-node@v4
         with:
