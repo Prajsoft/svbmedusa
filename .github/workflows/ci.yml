@@ -25,9 +25,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'yarn'
-          cache-dependency-path: svb-medusa/yarn.lock
-          enable-corepack: true
+
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
 
       - name: Install dependencies
         run: yarn install --immutable
@@ -50,9 +50,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'yarn'
-          cache-dependency-path: yarn.lock
-          enable-corepack: true
+
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
 
       - name: Install dependencies
         run: yarn install --immutable
